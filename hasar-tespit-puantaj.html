@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hasar Tespit Puantaj</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{
+  --bg:#f2faf4;--surface:#ffffff;--surface2:#e8f5eb;--border:#b8dcc0;
+  --accent:#1a7340;--accent2:#c0392b;--accent3:#e67e22;--accent4:#2980b9;
+  --text:#1a2e1e;--muted:#5a7a62;
+  --col0:rgba(41,128,185,.07);--col1:rgba(26,115,64,.07);
+  --col2:rgba(192,57,43,.07);--col3:rgba(230,126,34,.07);
+  --ldw:280px;
+  --shadow:0 2px 14px rgba(26,115,64,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:13px;}
+
+/* HEADER — gradient yeşil */
+header{
+  height:58px;
+  background:linear-gradient(135deg,#1a5c35 0%,#1a7340 60%,#1e8a4a 100%);
+  border-bottom:3px solid #2ecc71;
+  display:flex;align-items:center;padding:0 14px;gap:10px;z-index:200;flex-shrink:0;
+  box-shadow:0 3px 16px rgba(26,115,64,.25);
+}
+.menu-btn{width:34px;height:34px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;
+  cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  transition:border-color .2s,background .2s;flex-shrink:0;border-radius:4px;}
+.menu-btn:hover{background:rgba(255,255,255,.25);}
+.menu-btn span{display:block;width:15px;height:1.5px;background:#fff;transition:transform .25s,opacity .25s;}
+.menu-btn.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+.menu-btn.open span:nth-child(2){opacity:0;}
+.menu-btn.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+header h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:#fff;white-space:nowrap;text-shadow:0 1px 4px rgba(0,0,0,.2);}
+.tagline{font-size:10px;color:rgba(255,255,255,.7);letter-spacing:1px;text-transform:uppercase;}
+.view-tabs{display:flex;gap:4px;margin-left:14px;}
+.tab-btn{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;
+  border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);
+  padding:5px 12px;cursor:pointer;transition:all .15s;border-radius:3px;}
+.tab-btn.active{border-color:#fff;background:rgba(255,255,255,.25);color:#fff;font-weight:600;}
+.tab-btn:hover:not(.active){background:rgba(255,255,255,.2);color:#fff;}
+.hdr-sep{width:1px;height:28px;background:rgba(255,255,255,.25);margin:0 4px;}
+.header-actions{margin-left:auto;display:flex;gap:6px;align-items:center;}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:#fff;padding:5px 11px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;border-radius:3px;}
+.btn:hover{background:rgba(255,255,255,.25);}
+.btn.g{background:rgba(46,204,113,.25);border-color:rgba(46,204,113,.6);color:#fff;}
+.btn.g:hover{background:rgba(46,204,113,.45);}
+.btn.r{background:rgba(231,76,60,.25);border-color:rgba(231,76,60,.6);color:#fff;}
+.btn.r:hover{background:rgba(231,76,60,.45);}
+.btn.b{background:rgba(41,128,185,.25);border-color:rgba(41,128,185,.6);color:#fff;}
+.btn.b:hover{background:rgba(41,128,185,.45);}
+.btn.dim{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.6);}
+.btn.dim:hover{background:rgba(255,255,255,.18);color:#fff;}
+
+/* OVERLAY + DRAWER */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;opacity:0;pointer-events:none;transition:opacity .3s;}
+.overlay.show{opacity:1;pointer-events:all;}
+.ldrawer{position:fixed;top:56px;left:0;bottom:0;width:var(--ldw);background:var(--surface);
+  border-right:1px solid var(--border);z-index:160;display:flex;flex-direction:column;
+  transform:translateX(calc(-1 * var(--ldw)));transition:transform .32s cubic-bezier(.4,0,.2,1);
+  box-shadow:4px 0 24px rgba(0,0,0,.5);}
+.ldrawer.open{transform:translateX(0);}
+.drawer-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
+.dh-title{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;}
+.eng-list{flex:1;overflow-y:auto;padding:6px;}
+.eng-item{padding:8px 9px;border:1px solid transparent;cursor:pointer;transition:all .12s;margin-bottom:2px;display:flex;align-items:center;gap:8px;}
+.eng-item:hover{border-color:var(--border);background:var(--surface2);}
+.eng-item.active{border-color:var(--accent);background:rgba(232,200,74,.08);}
+.eng-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-size:12px;flex-shrink:0;}
+.eng-nm{font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.eng-tt{font-size:10px;color:var(--muted);margin-top:1px;}
+.eng-sc{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent);font-weight:600;flex-shrink:0;}
+.add-form{padding:9px 13px 13px;border-top:1px solid var(--border);background:var(--surface2);display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.add-form input,.add-form select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+  padding:6px 9px;font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;}
+.add-form input:focus,.add-form select:focus{border-color:var(--accent2);}
+.add-form select option{background:#111;}
+
+/* APP */
+.app-wrap{display:flex;flex-direction:column;height:calc(100vh - 56px);overflow:hidden;}
+.page{display:none;flex-direction:column;flex:1;overflow:hidden;}
+.page.active{display:flex;}
+
+/* VERİ GİRİŞİ */
+.vg-toolbar{display:flex;gap:10px;align-items:center;padding:9px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;}
+.vg-toolbar label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;}
+.vg-toolbar input{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:5px 9px;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;width:88px;}
+.vg-toolbar input:focus{border-color:var(--accent);}
+.vg-search-bar{padding:8px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.vg-search-bar input{width:280px;background:var(--bg);border:1px solid var(--border);color:var(--text);
+  padding:6px 10px;font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;}
+.vg-search-bar input:focus{border-color:var(--accent2);}
+.vg-body{flex:1;overflow-y:auto;padding:14px;}
+.vg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
+.vg-card{background:var(--surface);border:1px solid var(--border);padding:11px 13px;}
+.vg-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.vg-il-name{font-weight:600;font-size:13px;}
+.vg-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:2px 7px;border-radius:2px;}
+.badge-low{background:rgba(90,138,90,.2);color:#5a8a5a;}
+.badge-med{background:rgba(232,200,74,.2);color:var(--accent);}
+.badge-high{background:rgba(232,80,48,.2);color:#e84a6a;}
+.vg-inputs{display:flex;gap:8px;}
+.vg-inp-wrap{flex:1;display:flex;flex-direction:column;gap:3px;}
+.vg-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.vg-inp{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+  padding:6px 8px;font-family:'IBM Plex Mono',monospace;font-size:12px;outline:none;text-align:center;}
+.vg-inp:focus{border-color:var(--accent);color:var(--accent);}
+.vg-inp.z-inp:focus{border-color:var(--accent2);color:var(--accent2);}
+
+/* FILTER BAR */
+.filter-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:7px 14px;
+  display:flex;align-items:center;gap:11px;flex-shrink:0;}
+.filter-bar label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+.filter-bar input,.filter-bar select{background:var(--bg);border:1px solid var(--border);color:var(--text);
+  padding:4px 9px;font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--accent);}
+.filter-bar select option{background:#111;}
+.sort-ind{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent2);
+  background:rgba(74,232,176,.07);border:1px solid rgba(74,232,176,.18);padding:3px 10px;white-space:nowrap;}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;padding:5px 14px;background:var(--surface2);border-bottom:1px solid var(--border);
+  font-family:'IBM Plex Mono',monospace;font-size:9px;flex-wrap:wrap;flex-shrink:0;}
+.ld{display:flex;align-items:center;gap:5px;color:var(--muted);}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+/* SCROLL */
+.scroll-area{flex:1;overflow:auto;}
+.matrix-wrap{padding:14px;min-width:max-content;}
+
+/* TABLE — Her kişi kendi tablosunda (satır sayısı değişken) */
+.person-block{margin-bottom:20px;animation:fadeUp .2s ease;}
+.person-block-header{display:flex;align-items:center;gap:12px;padding:8px 12px;
+  background:var(--surface);border:1px solid var(--border);border-bottom:none;}
+.pb-rank{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--muted);}
+.pb-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;}
+.pb-title{font-size:10px;color:var(--muted);}
+.pb-total{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--accent);}
+.pb-total-lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-right:6px;}
+
+table{border-collapse:collapse;width:100%;}
+th,td{border:1px solid var(--border);text-align:center;vertical-align:middle;}
+
+/* fixed col widths */
+.col-row{width:32px;}
+.col-prev{width:88px;}
+.col-sub{width:54px;}
+.col-yrtot{width:80px;}
+
+thead tr.row-year th{background:var(--surface);font-family:'Bebas Neue',sans-serif;
+  font-size:13px;letter-spacing:1px;padding:6px 4px;position:sticky;top:0;z-index:10;}
+thead tr.row-year th.y-now{color:var(--accent2);}
+thead tr.row-year th.y-fut{color:#3a5a4a;}
+thead tr.row-year th.y-prev-hd{color:var(--accent4);}
+thead tr.row-sub th{background:var(--surface2);font-family:'IBM Plex Mono',monospace;
+  font-size:8px;letter-spacing:.2px;padding:4px 2px;line-height:1.3;position:sticky;top:33px;z-index:10;}
+.sub-prev{background:var(--col0)!important;color:var(--accent4);}
+.sub-il{background:var(--col1)!important;color:var(--accent);}
+.sub-z{background:var(--col2)!important;color:var(--accent2);}
+.sub-g{background:var(--col3)!important;color:var(--accent3);}
+.sub-cp{background:rgba(255,255,255,.02)!important;color:var(--muted);}
+.sub-yrtot{background:rgba(232,200,74,.05)!important;color:var(--accent);font-weight:600;}
+
+/* body rows */
+tbody tr td{padding:0;height:34px;}
+tbody tr.data-row:nth-child(odd) td{background:rgba(255,255,255,.005);}
+tbody tr.data-row:hover td{background:rgba(255,255,255,.025)!important;}
+/* row label */
+.row-lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);padding:0 6px;}
+/* subtotal row */
+tbody tr.sub-row td{background:rgba(232,200,74,.04)!important;border-top:1px solid rgba(232,200,74,.15);}
+tbody tr.onceki-row td{background:rgba(122,140,255,.05)!important;}
+
+/* inputs */
+.cell-input{width:100%;height:34px;background:transparent;border:none;text-align:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text);outline:none;padding:0 3px;cursor:pointer;}
+.cell-input:focus{background:rgba(255,255,255,.05);border:1px solid var(--accent2);color:var(--accent2);}
+.cell-input.prev-inp:focus{border-color:var(--accent4);color:var(--accent4);}
+.il-sel{width:100%;height:34px;background:transparent;border:none;text-align:center;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent);outline:none;
+  appearance:none;-webkit-appearance:none;cursor:pointer;padding:0 2px;}
+.il-sel:focus{background:rgba(232,200,74,.08);}
+.il-sel option{background:#1a1a1a;color:var(--text);}
+.gv-sel{width:100%;height:34px;background:transparent;border:none;text-align:center;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent3);outline:none;
+  appearance:none;-webkit-appearance:none;cursor:pointer;padding:0 2px;}
+.gv-sel:focus{background:rgba(232,74,106,.08);}
+.gv-sel option{background:#1a1a1a;color:var(--text);}
+.auto-val{width:100%;height:34px;display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent2);font-weight:500;}
+.auto-val.empty{color:var(--muted);font-size:10px;}
+.cp-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);padding:0 4px;}
+.yrtot-val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);padding:0 6px;}
+.grand-total-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:var(--accent);padding:0 8px;}
+
+/* sticky total col */
+.sticky-right{position:sticky;right:0;z-index:5;}
+.sticky-right-head{position:sticky;right:0;z-index:11;background:var(--surface)!important;border-left:2px solid var(--accent)!important;}
+.sticky-right-data{position:sticky;right:0;background:var(--bg)!important;border-left:2px solid rgba(232,200,74,.3)!important;}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:10px;color:var(--muted);}
+.empty-big{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:6px;color:var(--border);}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+/* pulse animasyonu Kaydet için */
+@keyframes pulse-save{
+  0%,100%{box-shadow:0 2px 10px rgba(231,76,60,.5);}
+  50%{box-shadow:0 2px 20px rgba(231,76,60,.85),0 0 0 4px rgba(231,76,60,.2);}
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.matrix-wrap{animation:fadeUp .2s ease;}
+/* Filtre barı yeşil ton */
+.filter-bar{background:linear-gradient(135deg,#f0fff4 0%,#e8f5eb 100%);border-bottom:2px solid #b8dcc0;
+  padding:7px 14px;display:flex;align-items:center;gap:11px;flex-shrink:0;}
+.filter-bar label{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+.filter-bar input,.filter-bar select{background:#fff;border:1px solid var(--border);color:var(--text);
+  padding:4px 9px;font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;border-radius:3px;}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--accent);}
+.filter-bar select option{background:#fff;}
+.sort-ind{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent);
+  background:rgba(26,115,64,.1);border:1px solid rgba(26,115,64,.3);padding:3px 10px;white-space:nowrap;border-radius:10px;}
+/* Kişi blokları renkli kenarlık */
+.person-block{margin-bottom:20px;animation:fadeUp .2s ease;border-radius:6px;overflow:hidden;}
+.person-block-header{display:flex;align-items:center;gap:12px;padding:10px 14px;
+  background:linear-gradient(135deg,#1a5c35 0%,#1a7340 100%);border-bottom:2px solid #2ecc71;}
+.pb-rank{font-family:'Bebas Neue',sans-serif;font-size:13px;color:rgba(255,255,255,.7);}
+.pb-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:#fff;}
+.pb-title{font-size:10px;color:rgba(255,255,255,.7);}
+.pb-total{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#2ecc71;}
+.pb-total-lbl{font-family:'IBM Plex Mono',monospace;font-size:10px;color:rgba(255,255,255,.6);margin-right:6px;}
+/* Tablo başlık renkleri */
+thead tr.row-year th{background:linear-gradient(135deg,#1a5c35,#1a7340);color:#fff;font-family:'Bebas Neue',sans-serif;
+  font-size:13px;letter-spacing:1px;padding:7px 4px;position:sticky;top:0;z-index:10;}
+thead tr.row-year th.y-now{color:#2ecc71;}
+thead tr.row-year th.y-fut{color:rgba(46,204,113,.5);}
+thead tr.row-year th.y-prev-hd{color:#f39c12;}
+thead tr.row-sub th{background:#e8f5eb;font-family:'IBM Plex Mono',monospace;
+  font-size:8px;letter-spacing:.2px;padding:4px 2px;line-height:1.3;position:sticky;top:33px;z-index:10;color:var(--muted);}
+.sub-prev{background:rgba(243,156,18,.12)!important;color:#e67e22;}
+.sub-il{background:rgba(26,115,64,.1)!important;color:#1a7340;}
+.sub-z{background:rgba(192,57,43,.1)!important;color:#c0392b;}
+.sub-g{background:rgba(230,126,34,.1)!important;color:#e67e22;}
+.sub-cp{background:rgba(255,255,255,.5)!important;color:var(--muted);}
+.sub-yrtot{background:rgba(46,204,113,.12)!important;color:#1a7340;font-weight:600;}
+/* tbody satır alternating */
+tbody tr td{padding:0;height:34px;}
+tbody tr.data-row:nth-child(odd) td{background:#f9fdf9;}
+tbody tr.data-row:hover td{background:#e8f5eb!important;}
+tbody tr.sub-row td{background:rgba(46,204,113,.06)!important;border-top:1px solid rgba(46,204,113,.2);}
+tbody tr.onceki-row td{background:rgba(243,156,18,.06)!important;}
+/* auto-val yeşil */
+.auto-val{color:#1a7340;font-weight:600;}
+.auto-val.empty{color:var(--muted);}
+/* cp-val */
+.cp-val{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;padding:0 4px;}
+.yrtot-val{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#1a7340;padding:0 6px;}
+.grand-total-val{font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;color:#1a7340;padding:0 8px;}
+.sticky-right-head{position:sticky;right:0;z-index:11;background:#1a5c35!important;border-left:2px solid #2ecc71!important;color:#fff!important;}
+.sticky-right-data{position:sticky;right:0;background:#f0fff4!important;border-left:2px solid rgba(46,204,113,.4)!important;}
+/* Drawer yeşil ton */
+.ldrawer{background:linear-gradient(180deg,#fff 0%,#f0fff4 100%);border-right:2px solid var(--border);}
+.add-form{background:#e8f5eb;border-top:2px solid var(--border);}
+.eng-item.active{border-color:var(--accent);background:rgba(26,115,64,.08);}
+/* Boş ekran */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:80%;gap:10px;color:var(--muted);}
+.empty-big{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:6px;color:#c8e8d0;}
+/* Veri girişi grid renk */
+.vg-card{background:#fff;border:1px solid var(--border);border-left:3px solid var(--accent);padding:11px 13px;border-radius:4px;box-shadow:0 1px 4px rgba(26,115,64,.06);}
+.vg-card:hover{border-left-color:var(--accent2);box-shadow:0 2px 8px rgba(26,115,64,.12);}
+
+/* ── TOAST BİLDİRİMİ ── */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  z-index:9998;
+  background:#1a5c35;color:#fff;
+  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+  padding:12px 28px;border-radius:30px;
+  box-shadow:0 4px 20px rgba(26,92,53,.4);
+  opacity:0;pointer-events:none;
+  transition:all .35s cubic-bezier(.4,0,.2,1);
+  white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.warn{background:#c0392b;box-shadow:0 4px 20px rgba(192,57,43,.45);}
+#toast.info{background:#2980b9;box-shadow:0 4px 20px rgba(41,128,185,.4);}
+
+/* unsaved uyarı bandı */
+#unsaved-bar{
+  position:fixed;top:58px;left:0;right:0;z-index:190;
+  background:linear-gradient(90deg,#c0392b,#e74c3c);
+  color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;
+  letter-spacing:.5px;text-align:center;padding:5px;
+  display:none;cursor:pointer;
+}
+#unsaved-bar:hover{background:linear-gradient(90deg,#a93226,#c0392b);}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:var(--surface2);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+
+/* ── GİRİŞ EKRANI ── */
+#login-screen{
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#dce8f5 0%,#e8f0f8 50%,#f0f5fc 100%);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;
+  gap:0;
+  padding:20px;
+}
+/* Üst kurum başlığı */
+.login-header-block{
+  width:460px;max-width:100%;
+  background:linear-gradient(135deg,#1a3a6b 0%,#1e4d8c 100%);
+  border:1px solid #1a3a6b;
+  border-bottom:none;
+  padding:22px 28px 18px;
+  text-align:center;
+  box-shadow:var(--shadow);
+}
+.login-tc-amblem{
+  font-size:32px;margin-bottom:8px;
+}
+.login-header-line{
+  font-family:'IBM Plex Sans',sans-serif;
+  line-height:1.55;
+}
+.login-header-line .l1{
+  font-size:11px;font-weight:600;color:#c8d8f0;
+  letter-spacing:0.5px;display:block;
+}
+.login-header-line .l2{
+  font-size:13px;font-weight:600;color:#e8f0ff;
+  letter-spacing:0.3px;display:block;margin-top:3px;
+}
+.login-header-line .l3{
+  font-size:11px;color:#8aa8cc;display:block;margin-top:2px;
+}
+.login-header-line .l4{
+  font-size:12px;font-weight:600;color:#f0c040;
+  display:block;margin-top:4px;letter-spacing:0.3px;
+}
+.login-header-divider{
+  width:460px;max-width:100%;
+  height:3px;
+  background:linear-gradient(90deg,#1e3a5f,#e8c84a,#1e3a5f);
+}
+
+/* Giriş kutusu */
+.login-box{
+  width:460px;max-width:100%;
+  background:#ffffff;
+  border:1px solid #c8d8e8;
+  border-top:none;
+  padding:28px 32px 22px;
+  box-shadow:var(--shadow);
+}
+.login-logo{
+  font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;
+  color:var(--accent);text-align:center;margin-bottom:3px;
+}
+.login-sub{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+  text-align:center;letter-spacing:1px;text-transform:uppercase;margin-bottom:22px;
+}
+.login-mode-tabs{
+  display:flex;gap:0;margin-bottom:18px;border:1px solid var(--border);border-radius:4px;overflow:hidden;
+}
+.login-mode-tab{
+  flex:1;padding:8px;text-align:center;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;
+  text-transform:uppercase;color:var(--muted);background:none;border:none;
+  transition:all .15s;
+}
+.login-mode-tab.active{background:var(--accent);color:#fff;}
+.login-field{display:flex;flex-direction:column;gap:5px;margin-bottom:13px;}
+.login-field label{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.login-field input{
+  background:#f8fafd;border:1px solid var(--border);color:var(--text);
+  padding:10px 12px;font-family:'IBM Plex Mono',monospace;font-size:13px;outline:none;
+  width:100%;border-radius:3px;
+}
+.login-field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,168,.10);}
+.login-err{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--accent3);
+  text-align:center;min-height:18px;margin-bottom:8px;
+}
+.login-btn{
+  width:100%;padding:11px;
+  background:var(--accent);color:#fff;border:none;
+  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+  cursor:pointer;transition:background .15s;margin-top:4px;border-radius:3px;
+}
+.login-btn:hover{background:#1a4d8a;}
+.login-view-btn{
+  width:100%;padding:9px;margin-top:10px;
+  background:none;border:1px solid var(--border);color:var(--muted);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;
+  text-transform:uppercase;cursor:pointer;transition:all .15s;border-radius:3px;
+}
+.login-view-btn:hover{border-color:var(--accent);color:var(--accent);}
+.login-info{
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);
+  text-align:center;margin-top:12px;line-height:1.6;
+}
+
+/* Alt kişi bilgisi */
+.login-footer-block{
+  width:460px;max-width:100%;
+  background:#f8fafd;
+  border:1px solid #c8d8e8;
+  border-top:2px solid var(--accent);
+  padding:14px 28px 16px;
+  text-align:center;
+  box-shadow:var(--shadow);
+}
+.login-footer-block .fp-name{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:18px;letter-spacing:2px;color:var(--accent);
+  margin-bottom:4px;
+}
+.login-footer-block .fp-title{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:11px;color:var(--muted);line-height:1.7;
+}
+
+/* ── KULLANICI ROZET (header) ── */
+.user-badge{
+  display:flex;align-items:center;gap:7px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+}
+.user-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.user-name-disp{color:var(--text);}
+.user-role-disp{color:var(--muted);}
+
+/* ── KÖŞE LOGO ── */
+.corner-logo{
+  position:fixed;bottom:12px;right:14px;z-index:100;
+  display:flex;align-items:center;gap:7px;
+  background:rgba(255,255,255,.85);
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:5px 10px 5px 7px;
+  box-shadow:0 2px 8px rgba(37,99,168,.08);
+  pointer-events:none;
+}
+.corner-logo-text{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-size:8px;color:var(--muted);line-height:1.4;
+}
+
+/* readonly overlay — sadece görüntüleme modunda */
+.readonly-overlay{
+  position:fixed;inset:0;z-index:300;pointer-events:none;
+}
+/* Bant */
+.readonly-band{
+  position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
+  background:rgba(37,99,168,.12);border:1px solid rgba(37,99,168,.3);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent);
+  padding:5px 18px;letter-spacing:1px;text-transform:uppercase;
+  pointer-events:none;white-space:nowrap;border-radius:20px;
+}
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+
+<!-- TOAST BİLDİRİMİ -->
+<div id="toast"></div>
+
+<!-- KAYDEDİLMEMİŞ UYARI BANDI -->
+<div id="unsaved-bar" onclick="saveToStorage()">
+  ⚠️ Kaydedilmemiş değişiklikler var — Kaydetmek için buraya tıklayın veya 💾 KAYDET butonunu kullanın
+</div>
+
+<!-- KÖŞE LOGO (her sayfada görünür) -->
+<div class="corner-logo" id="corner-logo" style="display:none">
+  <svg width="22" height="22" viewBox="0 0 56 56" fill="none">
+    <circle cx="28" cy="28" r="25" fill="none" stroke="#2563a8" stroke-width="2"/>
+    <path d="M28 10 C20 18 16 24 18 30 C20 36 26 38 28 38 C30 38 36 36 38 30 C40 24 36 18 28 10Z" fill="rgba(37,99,168,0.2)" stroke="#2563a8" stroke-width="1.5"/>
+    <rect x="20" y="34" width="4" height="8" fill="rgba(37,99,168,0.4)" stroke="#2563a8" stroke-width="1"/>
+    <rect x="26" y="30" width="4" height="12" fill="rgba(37,99,168,0.4)" stroke="#2563a8" stroke-width="1"/>
+    <rect x="32" y="34" width="4" height="8" fill="rgba(37,99,168,0.4)" stroke="#2563a8" stroke-width="1"/>
+    <circle cx="28" cy="22" r="4" fill="rgba(37,99,168,0.5)" stroke="#2563a8" stroke-width="1"/>
+  </svg>
+  <div class="corner-logo-text">
+    Çevre, Şehircilik ve<br>İklim Değişikliği Bakanlığı
+  </div>
+</div>
+
+<!-- ══ GİRİŞ EKRANI ══ -->
+<div id="login-screen">
+
+  <!-- ÜST: Kurum Başlığı (logo yok) -->
+  <div class="login-header-block">
+    <div class="login-header-line">
+      <span class="l1">T.C.</span>
+      <span class="l2">ÇEVRE, ŞEHİRCİLİK VE İKLİM DEĞİŞİKLİĞİ BAKANLIĞI</span>
+      <span class="l3">Çevre Şehircilik ve İklim Değişikliği İl Müdürlüğü</span>
+      <span class="l4">Afet Koordinasyon ve İskan Şube Müdürlüğü</span>
+    </div>
+  </div>
+  <div class="login-header-divider"></div>
+
+  <!-- ORTA: Giriş Kutusu -->
+  <div class="login-box">
+    <div class="login-logo">HASAR TESPİT PUANTAJ</div>
+    <div class="login-sub">Yetkili Giriş Sistemi</div>
+
+    <!-- Sadece Giriş formu -->
+    <div id="lform-login">
+      <div class="login-field">
+        <label>Kullanıcı Adı</label>
+        <input type="text" id="l-username" placeholder="kullanici_adi" autocomplete="username"
+          onkeydown="if(event.key==='Enter') document.getElementById('l-password').focus()"/>
+      </div>
+      <div class="login-field">
+        <label>Şifre</label>
+        <input type="password" id="l-password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') doLogin()"/>
+      </div>
+      <div class="login-err" id="l-err"></div>
+      <button class="login-btn" onclick="doLogin()">GİRİŞ YAP</button>
+      <button class="login-view-btn" onclick="showForgotForm()" style="margin-top:10px;">🔑 Şifremi Unuttum</button>
+    </div>
+
+    <!-- Şifremi Unuttum — Adım 1: Telefon no -->
+    <div id="lform-forgot" style="display:none">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;color:var(--accent);margin-bottom:14px;">ŞİFREMİ UNUTTUM</div>
+      <div class="login-field">
+        <label>Kayıtlı Telefon Numarası</label>
+        <input type="tel" id="f-phone" placeholder="05XX XXX XX XX"
+          onkeydown="if(event.key==='Enter') sendSmsCode()"/>
+      </div>
+      <div class="login-err" id="f-err"></div>
+      <button class="login-btn" onclick="sendSmsCode()">DOĞRULAMA KODU GÖNDER</button>
+      <button class="login-view-btn" onclick="showLoginForm()" style="margin-top:8px;">← Girişe Dön</button>
+    </div>
+
+    <!-- Şifremi Unuttum — Adım 2: SMS Kodu + Yeni Şifre -->
+    <div id="lform-sms" style="display:none">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1px;color:var(--accent);margin-bottom:6px;">SMS DOĞRULAMA</div>
+      <div id="sms-info" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.5;"></div>
+      <div class="login-field">
+        <label>SMS Doğrulama Kodu</label>
+        <input type="text" id="f-code" placeholder="6 haneli kod" maxlength="6"
+          onkeydown="if(event.key==='Enter') document.getElementById('f-newpass').focus()"/>
+      </div>
+      <div class="login-field">
+        <label>Yeni Şifre</label>
+        <input type="password" id="f-newpass" placeholder="En az 4 karakter"
+          onkeydown="if(event.key==='Enter') document.getElementById('f-newpass2').focus()"/>
+      </div>
+      <div class="login-field">
+        <label>Yeni Şifre Tekrar</label>
+        <input type="password" id="f-newpass2" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter') verifySmsCode()"/>
+      </div>
+      <div class="login-err" id="f-sms-err"></div>
+      <button class="login-btn" onclick="verifySmsCode()">ŞİFREYİ GÜNCELLE</button>
+      <button class="login-view-btn" onclick="showForgotForm()" style="margin-top:8px;">← Telefon Numarasına Dön</button>
+    </div>
+
+    <div class="login-info" id="login-info-txt">
+      Veri girişi için yetkili kullanıcı girişi gerekmektedir.
+    </div>
+  </div>
+
+  <!-- ALT: Kişi Bilgisi -->
+  <div class="login-footer-block">
+    <div class="fp-name">Oğuzhan Onat</div>
+    <div class="fp-title">
+      Afet Koordinasyon ve İskan Şube Müdürü<br>
+      Trabzon
+    </div>
+  </div>
+
+</div>
+
+<!-- Görüntüleme modu bandı -->
+<div class="readonly-band" id="readonly-band" style="display:none">
+  👁 GÖRÜNTÜLEME MODU — veri girişi kilitli
+</div>
+
+<!-- TELEFON KAYIT MODALİ -->
+<div id="phone-modal" style="display:none;position:fixed;inset:0;z-index:600;
+  background:rgba(0,0,0,.55);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-top:5px solid #1a7340;padding:30px 34px 24px;
+    width:420px;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.25);">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;
+      color:#1a7340;margin-bottom:6px;">📱 CEP TELEFONU KAYDI</div>
+    <div id="phone-modal-desc" style="font-family:'IBM Plex Sans',sans-serif;font-size:12px;
+      color:#555;margin-bottom:18px;line-height:1.6;padding:10px 12px;
+      background:#f0fff4;border-left:3px solid #1a7340;border-radius:3px;">
+      Şifremi Unuttum özelliğini kullanabilmek için cep telefon numaranızı kaydedin.
+      Şifre sıfırlama kodu bu numaraya gönderilecektir.
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px;">
+      <label style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#666;
+        text-transform:uppercase;letter-spacing:.5px;">Cep Telefonu Numaranız</label>
+      <input type="tel" id="modal-phone" placeholder="05XX XXX XX XX"
+        style="background:#f8fdf8;border:2px solid #b8dcc0;color:#1a2e1e;
+          padding:12px 14px;font-family:'IBM Plex Mono',monospace;font-size:15px;
+          outline:none;border-radius:5px;width:100%;letter-spacing:1px;"
+        onfocus="this.style.borderColor='#1a7340'"
+        onblur="this.style.borderColor='#b8dcc0'"
+        onkeydown="if(event.key==='Enter') savePhoneNumber()"/>
+    </div>
+    <div id="modal-phone-err" style="font-family:'IBM Plex Mono',monospace;font-size:11px;
+      color:#c0392b;min-height:18px;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="savePhoneNumber()" style="flex:1;padding:12px;
+        background:linear-gradient(135deg,#1a7340,#1a5c35);color:#fff;border:none;
+        font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+        cursor:pointer;border-radius:5px;box-shadow:0 2px 8px rgba(26,115,64,.3);
+        transition:all .15s;"
+        onmouseover="this.style.background='linear-gradient(135deg,#1e8a4a,#1a7340)'"
+        onmouseout="this.style.background='linear-gradient(135deg,#1a7340,#1a5c35)'">
+        KAYDET
+      </button>
+      <button onclick="skipPhoneModal()" style="padding:12px 18px;background:none;
+        border:2px solid #b8dcc0;color:#666;font-family:'IBM Plex Mono',monospace;
+        font-size:11px;cursor:pointer;border-radius:5px;transition:all .15s;"
+        id="phone-skip-btn">
+        Daha Sonra
+      </button>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#999;
+      text-align:center;margin-top:12px;line-height:1.5;">
+      🔒 Numara yalnızca cihazınızda saklanır. Hiçbir yere iletilmez.
+    </div>
+  </div>
+</div>
+
+
+<!-- LEFT DRAWER -->
+<div class="ldrawer" id="ldrawer">
+  <div class="drawer-head">
+    <span class="dh-title" style="color:var(--accent2)">MÜHENDİSLER</span>
+    <span id="eng-count" style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)">0 kişi</span>
+  </div>
+  <div class="eng-list" id="eng-list"></div>
+  <div class="add-form">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:1px;color:var(--accent2);margin-bottom:2px">YENİ EKLE</div>
+    <input type="text" id="inp-name" placeholder="Ad Soyad"/>
+    <select id="inp-title">
+      <option value="">-- Unvan Seçin --</option>
+      <option>İnşaat Mühendisi</option>
+      <option>Mimar</option>
+      <option>İnşaat Teknikeri</option>
+    </select>
+    <button class="btn g" onclick="addEngineer()" style="width:100%;padding:7px">+ Ekle</button>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <button class="menu-btn" id="lmenu-btn" onclick="toggleDrawer()">
+    <span></span><span></span><span></span>
+  </button>
+  <div style="cursor:pointer;" onclick="setPage('all')" title="Ana sayfaya dön">
+    <h1>HASAR TESPİT PUANTAJ</h1>
+  </div>
+  <div class="view-tabs" id="view-tabs-main">
+    <button class="tab-btn" id="tab-vg" onclick="setPage('vg')">⚙ Veri Girişi</button>
+    <button class="tab-btn active" id="tab-all" onclick="setPage('all')">◼ Tümü</button>
+    <button class="tab-btn" id="tab-grp" onclick="setPage('grp')" style="border-color:rgba(231,76,60,.6);background:rgba(231,76,60,.2);color:#fff;">⇄ Gruplandır</button>
+    <button id="save-btn" onclick="saveToStorage()" style="
+      background:#e74c3c;color:#fff;border:2px solid #fff;
+      font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;
+      padding:5px 18px;cursor:pointer;border-radius:4px;
+      box-shadow:0 2px 10px rgba(231,76,60,.5);
+      transition:all .18s;white-space:nowrap;margin-left:6px;
+      animation:pulse-save 2s infinite;">💾 KAYDET</button>
+    <span id="save-status" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(255,255,255,.8);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis;align-self:center;"></span>
+    <div style="width:1px;height:24px;background:rgba(255,255,255,.3);margin:0 6px;"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+      <button onclick="addNewYear()" style="
+        background:linear-gradient(135deg,rgba(46,204,113,.5),rgba(39,174,96,.6));
+        color:#fff;border:2px solid rgba(255,255,255,.7);
+        font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;
+        padding:4px 16px;cursor:pointer;border-radius:5px;white-space:nowrap;
+        box-shadow:0 2px 10px rgba(46,204,113,.4);
+        transition:all .15s;"
+        onmouseover="this.style.background='linear-gradient(135deg,rgba(46,204,113,.75),rgba(39,174,96,.85))';this.style.transform='scale(1.04)'"
+        onmouseout="this.style.background='linear-gradient(135deg,rgba(46,204,113,.5),rgba(39,174,96,.6))';this.style.transform='scale(1)'">
+        ＋ YENİ YIL EKLE
+      </button>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:rgba(255,255,255,.55);letter-spacing:.3px;">
+        Yeni yıl sütunları ekle
+      </span>
+    </div>
+    <span id="year-indicator" style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(255,255,255,.55);align-self:center;white-space:nowrap;"></span>
+  </div>
+  <div class="hdr-sep"></div>
+  <div class="header-actions">
+    <button class="btn g" onclick="exportExcel()">📊 Excel</button>
+    <button class="btn r" onclick="exportPDF()">📄 PDF</button>
+    <button class="btn b" onclick="importFromExcel()" title="Excel dosyasını yükle">📥 Yükle</button>
+    <button class="btn dim" onclick="importData()">📂 JSON</button>
+    <button class="btn dim" onclick="exportJSON()">💾 Yedek</button>
+  </div>
+</header>
+
+<div class="app-wrap">
+
+  <!-- VERİ GİRİŞİ -->
+  <div class="page" id="page-vg">
+    <div class="vg-search-bar">
+      <input type="text" id="vg-search" placeholder="İl ara... (boş bırakırsanız tüm iller görünür)" oninput="renderVgPage()"/>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-left:14px;">
+        Toplam <strong style="color:var(--accent)">81 il</strong> — Her il için İl Katsayısını girin. Değişiklikler matrise anında yansır.
+      </span>
+    </div>
+    <div class="vg-body">
+      <div class="vg-grid" id="vg-grid"></div>
+    </div>
+  </div>
+
+  <!-- TÜMÜ -->
+  <div class="page active" id="page-all">
+    <div class="filter-bar">
+      <!-- PDF ÇIKTI — sol tarafta belirgin -->
+      <button onclick="exportMainPDF()" style="
+        background:linear-gradient(135deg,#1a3a8f,#c0392b);
+        color:#fff;border:none;
+        font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:1.5px;
+        padding:7px 18px;cursor:pointer;border-radius:5px;white-space:nowrap;
+        box-shadow:0 3px 12px rgba(100,50,150,.35);
+        transition:all .18s;flex-shrink:0;"
+        onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 4px 16px rgba(100,50,150,.5)'"
+        onmouseout="this.style.transform='scale(1)';this.style.boxShadow='0 3px 12px rgba(100,50,150,.35)'">
+        📄 PDF ÇIKTI
+      </button>
+      <div style="width:1px;height:22px;background:var(--border);flex-shrink:0;"></div>
+      <label>Sırala:</label>
+      <select id="sort-by" onchange="applySort()">
+        <option value="default">Ekleme Sırası</option>
+        <option value="score-desc">Toplam Puan ↓</option>
+        <option value="score-asc">Toplam Puan ↑</option>
+        <option value="name-asc">Ad A→Z</option>
+        <option value="name-desc">Ad Z→A</option>
+      </select>
+      <label>Filtrele:</label>
+      <input type="text" id="filter-name" placeholder="İsim ara..." oninput="applySort()" style="min-width:130px"/>
+      <select id="filter-title" onchange="applySort()" style="min-width:148px">
+        <option value="">Tüm Unvanlar</option>
+        <option>İnşaat Mühendisi</option>
+        <option>Mimar</option>
+        <option>İnşaat Teknikeri</option>
+      </select>
+      <div class="sort-ind" id="sort-info">0 kişi</div>
+      <!-- Yeni Yıl Ekle — sabit görünür -->
+      <button onclick="addNewYear()" style="
+        background:linear-gradient(135deg,#1a7340,#1e8a4a);color:#fff;border:none;
+        font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;
+        padding:6px 16px;cursor:pointer;border-radius:5px;white-space:nowrap;
+        box-shadow:0 2px 8px rgba(26,115,64,.3);transition:all .15s;
+        display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;
+        margin-left:auto;"
+        onmouseover="this.style.background='linear-gradient(135deg,#1e8a4a,#27ae60)';this.style.transform='translateY(-1px)'"
+        onmouseout="this.style.background='linear-gradient(135deg,#1a7340,#1e8a4a)';this.style.transform='none'">
+        <span>＋ YENİ YIL EKLE</span>
+        <span style="font-size:8px;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;opacity:.8;">Yeni yıl sütunları ekle</span>
+      </button>
+    </div>
+    <div class="scroll-area">
+      <div class="empty-state" id="empty-all">
+        <div class="empty-big">MATRİS</div>
+        <div>Sol menüden (☰) mühendis ekleyin</div>
+      </div>
+      <div id="container-all" style="display:none;padding:14px;min-width:max-content;"></div>
+    </div>
+  </div>
+
+  <!-- TEKİL -->
+  <div class="page" id="page-single">
+    <div class="scroll-area">
+      <div class="empty-state" id="empty-single">
+        <div class="empty-big">SEÇİN</div>
+        <div>◼ Tümü görünümünden kişi seçin</div>
+      </div>
+      <div id="container-single" style="display:none;padding:14px;min-width:max-content;"></div>
+    </div>
+  </div>
+
+  <!-- GRUPLANDIRMA -->
+  <div class="page" id="page-grp">
+    <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:9px 16px;
+      display:flex;align-items:center;gap:14px;flex-shrink:0;flex-wrap:wrap;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:#e84a6a">
+        ⇄ OTOMATİK GRUPLANDIRMA
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);max-width:500px;">
+        Puanı düşükten yükseğe sıralanarak İnşaat Mühendisleri ile Mimar/Teknikerler ikişerli gruplara otomatik eşleştirilir.
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;">
+        <button class="btn r" onclick="exportGrpPDF()">📄 PDF İndir</button>
+      </div>
+    </div>
+    <div class="scroll-area">
+      <div class="empty-state" id="empty-grp">
+        <div class="empty-big" style="font-size:40px">GRUP</div>
+        <div>Önce mühendis ekleyin ve puanları girin</div>
+      </div>
+      <div id="container-grp" style="display:none;padding:20px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  KULLANICI YÖNETİMİ
+//  - Kullanıcılar localStorage'da hash'lenmiş şifreyle saklanır
+//  - Roller: 'admin' (tam yetki) | 'editor' (veri girişi) | 'viewer' (görüntüleme)
+//  - İlk kullanıcı otomatik admin olur
+//  - Yönetici kodu yeni kullanıcı kaydı için gereklidir
+// ══════════════════════════════════════════════════════════════════
+
+const USERS_KEY    = 'htp_users_v1';
+const SESSION_KEY  = 'htp_session_v1';
+const ADMIN_CODE   = 'HTP2024'; // Yönetici kodu — değiştirilebilir
+
+// Basit hash (production için yeterli, yerel uygulama için güvenli)
+async function hashPass(pass){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('HTP_SALT_' + pass));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function getUsers(){ try{ return JSON.parse(localStorage.getItem(USERS_KEY))||[]; }catch{ return []; } }
+function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
+
+// Oturum durumu
+let currentUser = null; // {username, role, displayName}
+let isViewOnly  = false;
+
+function getSession(){
+  try{ return JSON.parse(sessionStorage.getItem(SESSION_KEY)); }catch{ return null; }
+}
+function setSession(u){
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(u));
+}
+function clearSession(){
+  sessionStorage.removeItem(SESSION_KEY);
+}
+
+// ── Telefon Numarası Kayıt Modalı ─────────────────────────
+function openPhoneModal(isFirstLogin=false){
+  if(!currentUser){ alert('Önce giriş yapmalısınız.'); return; }
+  const users = getUsers();
+  const user  = users.find(u=>u.username===currentUser.username);
+  const el    = document.getElementById('modal-phone');
+  if(el && user && user.phone) el.value = user.phone;
+  document.getElementById('modal-phone-err').textContent='';
+
+  // İlk girişte metni güncelle
+  const desc = document.getElementById('phone-modal-desc');
+  const skipBtn = document.getElementById('phone-skip-btn');
+  if(isFirstLogin){
+    if(desc) desc.innerHTML = `<strong style="color:#1a7340">Hoş geldiniz!</strong> Şifremi Unuttum özelliğini kullanabilmek için cep telefon numaranızı şimdi kaydedin. Daha sonra da ekleyebilirsiniz.`;
+    if(skipBtn) skipBtn.textContent = 'Şimdi Değil';
+  } else {
+    if(desc) desc.innerHTML = 'Şifremi Unuttum özelliğini kullanabilmek için cep telefon numaranızı kaydedin. Şifre sıfırlama kodu bu numaraya gönderilecektir.';
+    if(skipBtn) skipBtn.textContent = 'Daha Sonra';
+  }
+
+  document.getElementById('phone-modal').style.display='flex';
+  setTimeout(()=>{ if(el) el.focus(); }, 150);
+}
+
+function closePhoneModal(){
+  document.getElementById('phone-modal').style.display='none';
+}
+
+function skipPhoneModal(){
+  closePhoneModal();
+  showToast('Telefon numarası daha sonra eklenebilir (👤 → 📱)','info',4000);
+}
+
+function savePhoneNumber(){
+  const rawPhone = document.getElementById('modal-phone').value.trim();
+  const phone    = normalizePhone(rawPhone);
+  const errEl    = document.getElementById('modal-phone-err');
+  if(!phone || phone.length < 10){ errEl.textContent='Geçerli bir telefon numarası girin (en az 10 hane).'; return; }
+  if(!phone.match(/^[0-9+]+$/)){ errEl.textContent='Sadece rakam ve + karakteri kullanın.'; return; }
+  if(!phone.startsWith('0') && !phone.startsWith('+')){ errEl.textContent="Numara 0 veya + ile başlamalı (örn: 05XX...)"; return; }
+  const users = getUsers();
+  const user  = users.find(u=>u.username===currentUser.username);
+  if(!user){ errEl.textContent='Kullanıcı bulunamadı.'; return; }
+  user.phone = phone; // normalize edilmiş şekilde kaydet
+  saveUsers(users);
+  closePhoneModal();
+  showToast('✓ Telefon kaydedildi: '+phone,'success',4000);
+  showSaveStatus('✓ Telefon numarası kaydedildi','#1a7340');
+}
+
+// ── Giriş formu geçişleri ──────────────────────────────────
+function showLoginForm(){
+  document.getElementById('lform-login').style.display  = 'block';
+  document.getElementById('lform-forgot').style.display = 'none';
+  document.getElementById('lform-sms').style.display    = 'none';
+}
+function showForgotForm(){
+  document.getElementById('lform-login').style.display  = 'none';
+  document.getElementById('lform-forgot').style.display = 'block';
+  document.getElementById('lform-sms').style.display    = 'none';
+  document.getElementById('f-err').textContent='';
+}
+
+// ── SMS simülasyonu ────────────────────────────────────────
+// Telefon numarasını normalize et (tüm boşluk, tire, parantez kaldır)
+function normalizePhone(p){
+  return String(p).replace(/[\s\-\(\)\.]/g,'');
+}
+
+let _smsCode = '';
+let _smsPhone = '';
+
+function sendSmsCode(){
+  const rawPhone = document.getElementById('f-phone').value.trim();
+  const errEl    = document.getElementById('f-err');
+  const phone    = normalizePhone(rawPhone);
+
+  if(!phone || phone.length < 10){ errEl.textContent='Geçerli bir telefon numarası girin (örn: 05301234567).'; return; }
+
+  // Kullanıcıyı bul — normalize edilmiş numara ile karşılaştır
+  const users = getUsers();
+  const user  = users.find(u => u.phone && normalizePhone(u.phone) === phone);
+
+  if(!user){
+    // Kayıtlı telefon numaralarını debug için göster (sadece son 4 hane)
+    const kayitli = users.filter(u=>u.phone).map(u=>
+      u.phone.substring(0,3)+'****'+u.phone.slice(-4)
+    ).join(', ');
+    errEl.innerHTML = 'Bu numarayla kayıtlı kullanıcı bulunamadı.<br>'
+      + '<span style="font-size:10px;color:#888;">Kayıtlı numara(lar): '
+      + (kayitli||'Henüz numara kaydedilmemiş')+'</span>';
+    return;
+  }
+
+  _smsPhone = phone;
+  _smsCode  = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Kodu localStorage'a yaz (5 dk geçerli)
+  localStorage.setItem('htp_sms_temp', JSON.stringify({
+    code: _smsCode,
+    phone: _smsPhone,
+    exp: Date.now() + 300000
+  }));
+
+  document.getElementById('lform-forgot').style.display = 'none';
+  document.getElementById('lform-sms').style.display    = 'block';
+  document.getElementById('sms-info').innerHTML = `
+    <div style="background:#f0fff4;border:1px solid #b8dcc0;border-radius:6px;padding:12px;margin-bottom:8px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:#1a7340;text-align:center;">
+        DOĞRULAMA KODUNUZ
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:32px;font-weight:700;
+        color:#1a5c35;text-align:center;letter-spacing:6px;margin:8px 0;">
+        ${_smsCode}
+      </div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#666;text-align:center;">
+        Bu kodu aşağıdaki alana girin · 5 dakika geçerli
+      </div>
+    </div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#888;text-align:center;">
+      📱 ${rawPhone} numarasına kod gönderildi (test modunda yukarıda gösterilir)
+    </div>`;
+  document.getElementById('f-sms-err').textContent = '';
+  document.getElementById('f-code').value = '';
+  document.getElementById('f-newpass').value = '';
+  document.getElementById('f-newpass2').value = '';
+}
+
+async function verifySmsCode(){
+  const code   = document.getElementById('f-code').value.trim();
+  const pass   = document.getElementById('f-newpass').value;
+  const pass2  = document.getElementById('f-newpass2').value;
+  const errEl  = document.getElementById('f-sms-err');
+
+  // Kodu doğrula
+  let storedData = null;
+  try { storedData = JSON.parse(localStorage.getItem('htp_sms_temp')); } catch(e){}
+
+  if(!storedData || Date.now() > storedData.exp){ errEl.textContent='Kodun süresi dolmuş. Tekrar deneyin.'; return; }
+  if(code !== storedData.code && code !== _smsCode){ errEl.textContent='Doğrulama kodu hatalı.'; return; }
+  if(pass.length < 4){ errEl.textContent='Şifre en az 4 karakter olmalı.'; return; }
+  if(pass !== pass2){ errEl.textContent='Şifreler eşleşmiyor.'; return; }
+
+  // Şifreyi güncelle
+  const users = getUsers();
+  const user  = users.find(u => u.phone && normalizePhone(u.phone) === normalizePhone(_smsPhone));
+  if(!user){ errEl.textContent='Kullanıcı bulunamadı.'; return; }
+
+  user.hash = await hashPass(pass);
+  saveUsers(users);
+  localStorage.removeItem('htp_sms_temp');
+
+  alert('✓ Şifreniz başarıyla güncellendi! Yeni şifrenizle giriş yapabilirsiniz.');
+  showLoginForm();
+}
+
+// Eski switchLoginMode — artık kullanılmıyor ama çağrı varsa hata vermesin
+function switchLoginMode(mode){ if(mode==='login') showLoginForm(); }
+
+// ── Giriş yap ─────────────────────────────────────────────
+async function doLogin(){
+  const uname = document.getElementById('l-username').value.trim();
+  const pass  = document.getElementById('l-password').value;
+  const errEl = document.getElementById('l-err');
+  if(!uname||!pass){ errEl.textContent='Kullanıcı adı ve şifre gerekli.'; return; }
+
+  const users = getUsers();
+  const hash  = await hashPass(pass);
+  const user  = users.find(u => u.username === uname && u.hash === hash);
+
+  if(!user){ errEl.textContent='Kullanıcı adı veya şifre hatalı.'; return; }
+
+  currentUser = { username: user.username, role: user.role, displayName: user.displayName||user.username };
+  isViewOnly  = false;
+  setSession(currentUser);
+  enterApp();
+}
+
+// ── Kayıt ol ──────────────────────────────────────────────
+async function doRegister(){
+  const uname  = document.getElementById('r-username').value.trim();
+  const pass   = document.getElementById('r-password').value;
+  const pass2  = document.getElementById('r-password2').value;
+  const acode  = document.getElementById('r-admin-code').value;
+  const errEl  = document.getElementById('r-err');
+
+  if(!uname)             { errEl.textContent='Kullanıcı adı boş olamaz.'; return; }
+  if(uname.length < 3)   { errEl.textContent='Kullanıcı adı en az 3 karakter olmalı.'; return; }
+  if(pass.length < 4)    { errEl.textContent='Şifre en az 4 karakter olmalı.'; return; }
+  if(pass !== pass2)     { errEl.textContent='Şifreler eşleşmiyor.'; return; }
+
+  const users = getUsers();
+
+  // İlk kullanıcı kayıt kodu gerektirmez, doğrudan admin
+  if(users.length > 0 && acode !== ADMIN_CODE){
+    errEl.textContent='Yönetici kodu hatalı.'; return;
+  }
+  if(users.find(u => u.username === uname)){
+    errEl.textContent='Bu kullanıcı adı zaten alınmış.'; return;
+  }
+
+  const hash = await hashPass(pass);
+  const role = users.length === 0 ? 'admin' : 'editor';
+  const newUser = { username: uname, hash, role, displayName: uname, createdAt: new Date().toISOString() };
+  users.push(newUser);
+  saveUsers(users);
+
+  // Yeni kullanıcı bildirimi — mailto ile yöneticiye mail gönder
+  if(role === 'editor'){
+    const subject = encodeURIComponent('Hasar Tespit Puantaj - Yeni Kullanici Kaydı');
+    const body = encodeURIComponent(
+      'Yeni kullanici kaydi yapildi.\n\n'
+      + 'Kullanici Adi: ' + uname + '\n'
+      + 'Rol: Editor\n'
+      + 'Tarih: ' + new Date().toLocaleString('tr-TR') + '\n\n'
+      + 'Trabzon Afet Koordinasyon ve Iskan Sube Mudurlugu\nHasar Tespit Puantaj Sistemi'
+    );
+    // Yöneticinin mail adresini localStorage'dan al
+    const adminMail = localStorage.getItem('htp_admin_email') || '';
+    if(adminMail){
+      window.open('mailto:'+adminMail+'?subject='+subject+'&body='+body, '_blank');
+    }
+  }
+
+  currentUser = { username: uname, role, displayName: uname };
+  isViewOnly  = false;
+  setSession(currentUser);
+  errEl.textContent = '';
+  enterApp();
+}
+
+// ── Görüntüleme modunda gir ───────────────────────────────
+function enterViewMode(){
+  currentUser = null;
+  isViewOnly  = true;
+  enterApp();
+}
+
+// ── Uygulamaya gir ────────────────────────────────────────
+function enterApp(){
+  document.getElementById('login-screen').style.display = 'none';
+
+  // Köşe logo göster
+  document.getElementById('corner-logo').style.display = 'flex';
+
+  // Görüntüleme bandı
+  if(isViewOnly){
+    document.getElementById('readonly-band').style.display = 'block';
+  }
+
+  // Header kullanıcı rozeti
+  if(currentUser){
+    const dot  = document.getElementById('user-dot');
+    const name = document.getElementById('user-name-disp');
+    const role = document.getElementById('user-role-disp');
+    dot.style.background = currentUser.role==='admin' ? '#f0c040' : '#4ae8b0';
+    name.textContent = currentUser.displayName;
+    role.textContent = currentUser.role==='admin' ? '(yönetici)' : '(editör)';
+    document.getElementById('user-badge').style.display = 'flex';
+
+    // Telefon numarası kayıtlı mı kontrol et — yoksa ilk girişte sor
+    const users = getUsers();
+    const user  = users.find(u=>u.username===currentUser.username);
+    if(user && !user.phone){
+      // Kısa gecikme ile modal aç (sayfa yüklendikten sonra)
+      setTimeout(()=>{ openPhoneModal(true); }, 1200);
+    }
+  }
+
+  // Veri girişi yetkisi yoksa inputları devre dışı bırak
+  applyAccessControl();
+
+  // Uygulamayı başlat
+  appStart();
+}
+
+// ── Çıkış ────────────────────────────────────────────────
+let _hasUnsaved = false; // Kaydedilmemiş değişiklik var mı
+
+function doLogout(){
+  // Kaydedilmemiş veri uyarısı
+  if(_hasUnsaved){
+    const devam = confirm(
+      '⚠ UYARI: Kaydedilmemiş değişiklikler var!\n\n' +
+      'Çıkış yapmadan önce kaydetmek ister misiniz?\n\n' +
+      '• "İptal" → Geri dön ve kaydet\n' +
+      '• "Tamam" → Kaydetmeden çıkış yap'
+    );
+    if(!devam) return;
+  } else {
+    if(!confirm('Sistemden çıkış yapmak istediğinizden emin misiniz?')) return;
+  }
+
+  clearSession();
+  currentUser = null;
+  isViewOnly  = false;
+  _hasUnsaved = false;
+
+  // Giriş ekranını göster (sayfa yenileme yerine)
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('corner-logo').style.display = 'none';
+  document.getElementById('user-badge').style.display = 'none';
+  document.getElementById('readonly-band').style.display = 'none';
+  document.getElementById('unsaved-bar').style.display = 'none';
+  const dw = document.getElementById('drawer-unsaved-warn');
+  if(dw) dw.style.display = 'none';
+
+  // Tüm sayfaları kapat
+  ['page-vg','page-all','page-grp','page-single'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.remove('active');
+  });
+
+  // Drawer kapat
+  closeDrawer();
+
+  // Giriş formunu sıfırla
+  showLoginForm();
+  const uEl=document.getElementById('l-username');
+  const pEl=document.getElementById('l-password');
+  if(uEl) uEl.value='';
+  if(pEl) pEl.value='';
+  const eEl=document.getElementById('l-err');
+  if(eEl) eEl.textContent='';
+}
+
+// ── Erişim kontrolü
+function applyAccessControl(){
+  // Görüntüleme modu VEYA sadece editör → sadece gruplandırma göster
+  const isLimited = isViewOnly || (currentUser && currentUser.role === 'editor');
+
+  if(isLimited){
+    // Sol menü gizle
+    document.getElementById('lmenu-btn').style.pointerEvents = 'none';
+    document.getElementById('lmenu-btn').style.opacity = '0.3';
+    window._addEngDisabled = true;
+
+    // Veri girişi, Tümü sekmelerini gizle
+    ['tab-vg','tab-all'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display='none';
+    });
+
+    // Header butonlarını gizle (kaydet, excel, pdf, import hariç)
+    const saveBtn=document.getElementById('save-btn');
+    if(saveBtn) saveBtn.style.display='none';
+    const saveStatus=document.getElementById('save-status');
+    if(saveStatus) saveStatus.style.display='none';
+
+    // Sadece gruplandırma sayfasını göster
+    setPage('grp');
+    return;
+  }
+
+  // Admin: her şey açık
+}
+
+// Veri girişinde yetki kontrolü
+function requireEdit(){
+  if(isViewOnly || (currentUser && currentUser.role === 'editor')){
+    alert('Bu işlem için yönetici girişi gereklidir.');
+    return false;
+  }
+  return true;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SABİTLER
+// ══════════════════════════════════════════════════════════════════
+const ILLER = [
+  "Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya",
+  "Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik",
+  "Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum",
+  "Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir",
+  "Gaziantep","Giresun","Gümüşhane","Hakkari","Hatay","Iğdır","Isparta","İstanbul",
+  "İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kilis",
+  "Kırıkkale","Kırklareli","Kırşehir","Kocaeli","Konya","Kütahya","Malatya","Manisa",
+  "Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye",
+  "Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak",
+  "Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"
+];
+
+const IL_K_DEF = {
+  "Adana":1.10,"Adıyaman":1.25,"Afyonkarahisar":1.05,"Ağrı":1.40,"Aksaray":1.10,"Amasya":1.05,
+  "Ankara":1.00,"Antalya":1.05,"Ardahan":1.45,"Artvin":1.35,"Aydın":1.05,"Balıkesir":1.05,
+  "Bartın":1.15,"Batman":1.30,"Bayburt":1.35,"Bilecik":1.05,"Bingöl":1.35,"Bitlis":1.40,
+  "Bolu":1.10,"Burdur":1.05,"Bursa":1.00,"Çanakkale":1.05,"Çankırı":1.10,"Çorum":1.05,
+  "Denizli":1.05,"Diyarbakır":1.25,"Düzce":1.10,"Edirne":1.00,"Elazığ":1.20,"Erzincan":1.30,
+  "Erzurum":1.40,"Eskişehir":1.00,"Gaziantep":1.15,"Giresun":1.20,"Gümüşhane":1.30,"Hakkari":1.50,
+  "Hatay":1.10,"Iğdır":1.40,"Isparta":1.05,"İstanbul":1.00,"İzmir":1.00,"Kahramanmaraş":1.15,
+  "Karabük":1.10,"Karaman":1.05,"Kars":1.45,"Kastamonu":1.10,"Kayseri":1.05,"Kilis":1.15,
+  "Kırıkkale":1.00,"Kırklareli":1.00,"Kırşehir":1.05,"Kocaeli":1.00,"Konya":1.05,"Kütahya":1.05,
+  "Malatya":1.20,"Manisa":1.00,"Mardin":1.30,"Mersin":1.10,"Muğla":1.05,"Muş":1.40,
+  "Nevşehir":1.05,"Niğde":1.05,"Ordu":1.15,"Osmaniye":1.10,"Rize":1.20,"Sakarya":1.05,
+  "Samsun":1.05,"Siirt":1.35,"Sinop":1.10,"Sivas":1.15,"Şanlıurfa":1.25,"Şırnak":1.45,
+  "Tekirdağ":1.00,"Tokat":1.10,"Trabzon":1.15,"Tunceli":1.45,"Uşak":1.00,"Van":1.45,
+  "Yalova":1.00,"Yozgat":1.10,"Zonguldak":1.10
+};
+
+// Her il için {ilk, zorluk}
+let IL_DATA = {};
+ILLER.forEach(il => { IL_DATA[il] = { ilk: IL_K_DEF[il]||'', zorluk:'' }; });
+
+const GV_K = { hasar:1.20, buro:1.00 };
+// YEARS dinamik — kullanıcı yeni yıl ekleyebilir
+let YEARS = ["2025"];
+const ROWS_PER_YEAR = 3;
+const COLORS = ["#e8c84a","#4ae8b0","#e84a6a","#4a9fe8","#e88a4a","#a04ae8","#4ae8e8","#e84ae8","#8ae84a","#c8e84a"];
+
+let engineers = [];
+// data[id] = { onceki:'', rows:{ '2025': [{il,gorev},{il,gorev},{il,gorev}], ... } }
+let data = {};
+let selectedId = null;
+let currentPage = 'all';
+let drawerOpen = false;
+
+// ── DRAWER ──────────────────────────────────────────────
+function toggleDrawer(){drawerOpen?closeDrawer():openDrawer();}
+function openDrawer(){
+  drawerOpen=true;
+  document.getElementById('ldrawer').classList.add('open');
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('lmenu-btn').classList.add('open');
+}
+function closeDrawer(){
+  drawerOpen=false;
+  document.getElementById('ldrawer').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('lmenu-btn').classList.remove('open');
+}
+
+// ── PAGE NAV ────────────────────────────────────────────
+function setPage(p){
+  currentPage=p;
+  ['vg','all','grp'].forEach(id=>{
+    const el=document.getElementById('page-'+id);
+    if(el) el.classList.toggle('active',id===p);
+    const tab=document.getElementById('tab-'+id);
+    if(tab) tab.classList.toggle('active',id===p);
+  });
+  if(p==='vg') renderVgPage();
+  else if(p==='all') renderAllView();
+  else if(p==='grp') renderGrpPage();
+}
+
+// ── YENİ YIL EKLE ───────────────────────────────────────
+function addNewYear(){
+  if(!requireEdit()) return;
+  const lastYear=parseInt(YEARS[YEARS.length-1]);
+  const nextYear=String(lastYear+1);
+  if(YEARS.includes(nextYear)){
+    showToast(nextYear+' zaten mevcut!','warn'); return;
+  }
+  // Onay
+  if(!confirm(nextYear+' yılı için yeni sütunlar eklenecek.\nTüm mühendislere '+nextYear+' yılı veri satırları eklenir. Devam?')) return;
+  YEARS.push(nextYear);
+  // Tüm mühendislere yeni yıl satırlarını ekle
+  engineers.forEach(e=>{
+    if(!data[e.id].rows[nextYear]){
+      data[e.id].rows[nextYear]=Array.from({length:ROWS_PER_YEAR},()=>({il:'',gorev:'',gun:''}));
+    }
+  });
+  updateYearIndicator();
+  markUnsaved();
+  saveToStorage();
+  renderAllView();
+  showToast('✓ '+nextYear+' yılı eklendi!','success',3000);
+}
+
+// Hangi yıllar görünür olacak (en az bir kişide veri var veya en son eklenen yıl)
+function getVisibleYears(){
+  // Veri girilen yıllar
+  const withData=YEARS.filter(y=>
+    engineers.some(e=>data[e.id]&&data[e.id].rows&&data[e.id].rows[y]&&
+      data[e.id].rows[y].some(r=>r.il||r.gorev||r.gun))
+  );
+  // En son yıl her zaman görünsün (henüz boş olsa bile)
+  const lastY=YEARS[YEARS.length-1];
+  if(!withData.includes(lastY)) withData.push(lastY);
+  // Sıralı döndür
+  return YEARS.filter(y=>withData.includes(y));
+}
+
+function updateYearIndicator(){
+  const el=document.getElementById('year-indicator');
+  if(el){
+    const last=YEARS[YEARS.length-1];
+    el.textContent='Aktif yıllar: '+YEARS.join(' · ')+' | Son: '+last;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  VERİ GİRİŞİ SAYFASI
+// ══════════════════════════════════════════════════════════════════
+function renderVgPage(){
+  const s=(document.getElementById('vg-search').value||'').toLowerCase();
+  // Boş arama = tüm iller, yoksa filtrele
+  const iller=s ? ILLER.filter(il=>il.toLowerCase().includes(s)) : [...ILLER];
+
+  // İstatistik
+  const girilenSayi=ILLER.filter(il=>IL_DATA[il].ilk!=='').length;
+  const eksikSayi=ILLER.length-girilenSayi;
+
+  document.getElementById('vg-grid').innerHTML=`
+    <div style="grid-column:1/-1;display:flex;gap:12px;margin-bottom:12px;align-items:center;
+      padding:10px 14px;background:linear-gradient(135deg,#f0fff4,#e8f5eb);border-radius:6px;border:1px solid #b8dcc0;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;">
+        <span style="color:#1a7340;font-weight:700;">${girilenSayi}</span>
+        <span style="color:var(--muted);"> il girildi</span>
+      </div>
+      <div style="width:1px;height:16px;background:var(--border);"></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;">
+        <span style="color:#c0392b;font-weight:700;">${eksikSayi}</span>
+        <span style="color:var(--muted);"> il eksik</span>
+      </div>
+      ${eksikSayi>0?`<div style="width:1px;height:16px;background:var(--border);"></div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#c0392b;">
+        ⚠ Kırmızı kenarlıklı iller henüz girilmedi
+      </div>`:'<div style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:#1a7340;">✓ Tüm iller girildi</div>'}
+    </div>
+    ${iller.map(il=>{
+      const d=IL_DATA[il];
+      const ilkV=d.ilk!==''?parseFloat(d.ilk).toFixed(3):'';
+      const hasVal=d.ilk!=='';
+      return `<div class="vg-card" style="
+        border-left:3px solid ${hasVal?'#1a7340':'#c0392b'};
+        background:${hasVal?'#fff':'#fffafa'};
+        padding:10px 12px;border-radius:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:${hasVal?'#1a2e1e':'#7a2020'};">${il}</span>
+          ${hasVal
+            ?`<span style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;
+                color:#1a5c35;background:#e8f5eb;border-radius:3px;padding:2px 7px;">${ilkV}</span>`
+            :`<span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#c0392b;
+                background:#fff0f0;border-radius:3px;padding:2px 7px;">Girilmedi</span>`}
+        </div>
+        <input type="number" step="0.001" min="0.500" max="3.000" placeholder="0.000"
+          value="${ilkV}"
+          oninput="setIlData('${il}','ilk',this.value)"
+          style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;
+            color:${hasVal?'#1a5c35':'#999'};text-align:center;
+            border:2px solid ${hasVal?'#b8dcc0':'#f0b0b0'};border-radius:4px;
+            background:${hasVal?'#f0fff4':'#fff8f8'};padding:7px;outline:none;"
+          onfocus="this.style.borderColor='#1a7340'"
+          onblur="this.style.borderColor='${hasVal?'#b8dcc0':'#f0b0b0'}'"/>
+      </div>`;
+    }).join('')}`;
+}
+
+function setIlData(il,field,val){
+  if(!requireEdit()) return;
+  IL_DATA[il][field]=val;
+  engineers.forEach(eng=>{
+    YEARS.forEach(y=>{
+      data[eng.id].rows[y].forEach((_,r)=>{
+        if(data[eng.id].rows[y][r].il===il) refreshCell(eng.id,y,r);
+      });
+    });
+    refreshPersonTotal(eng.id);
+  });
+  markUnsaved();
+  showToast('İl katsayısı güncellendi — Kaydetmeyi unutma!', 'info', 4000);
+  renderSidebar();
+}
+
+function bulkSetZ(){
+  const v=document.getElementById('bulk-z').value; if(!v) return;
+  ILLER.forEach(il=>{IL_DATA[il].zorluk=v;});
+  renderVgPage();
+  engineers.forEach(eng=>{YEARS.forEach(y=>{for(let r=0;r<ROWS_PER_YEAR;r++) refreshCell(eng.id,y,r);});refreshPersonTotal(eng.id);});
+  renderSidebar();
+}
+function bulkSetIlK(){
+  const v=document.getElementById('bulk-ilk').value; if(!v) return;
+  ILLER.forEach(il=>{IL_DATA[il].ilk=v;});
+  renderVgPage();
+  engineers.forEach(eng=>{YEARS.forEach(y=>{for(let r=0;r<ROWS_PER_YEAR;r++) refreshCell(eng.id,y,r);});refreshPersonTotal(eng.id);});
+  renderSidebar();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  MÜHENDİS CRUD
+// ══════════════════════════════════════════════════════════════════
+function newData(){
+  const d={onceki:''};
+  d.rows={};
+  YEARS.forEach(y=>{ d.rows[y]=Array.from({length:ROWS_PER_YEAR},()=>({il:'',gorev:'',gun:''})); });
+  return d;
+}
+
+// Mevcut tüm kişilere eksik yıl satırları ekle (yeni yıl eklenince)
+function ensureYearsForAll(){
+  engineers.forEach(e=>{
+    YEARS.forEach(y=>{
+      if(!data[e.id].rows[y]){
+        data[e.id].rows[y]=Array.from({length:ROWS_PER_YEAR},()=>({il:'',gorev:'',gun:''}));
+      }
+    });
+  });
+}
+function addEngineer(){
+  if(window._addEngDisabled || !requireEdit()) return;
+  const name=document.getElementById('inp-name').value.trim();
+  const title=document.getElementById('inp-title').value;
+  if(!name||!title){alert('Ad ve unvan zorunludur!');return;}
+  const id=Date.now();
+  engineers.push({id,name,title,color:COLORS[engineers.length%COLORS.length]});
+  data[id]=newData();
+  document.getElementById('inp-name').value='';
+  document.getElementById('inp-title').value='';
+  selectedId=id;
+  renderSidebar();
+  markUnsaved();
+  if(currentPage==='all') renderAllView();
+  else if(currentPage==='single') renderSingleView();
+}
+function deleteEngineer(id,e){
+  e&&e.stopPropagation();
+  if(!requireEdit()) return;
+  if(!confirm('Bu mühendisi silmek istediğinizden emin misiniz?')) return;
+  engineers=engineers.filter(en=>en.id!==id);
+  delete data[id];
+  if(selectedId===id) selectedId=engineers.length?engineers[0].id:null;
+  renderSidebar();
+  markUnsaved();
+  if(currentPage==='all') renderAllView();
+  else renderSingleView();
+}
+function selectEngineer(id){
+  selectedId=id;
+  setPage('single');
+  renderSidebar();
+  closeDrawer();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  HESAPLAR
+//  Çarpım = İl Katsayısı × Görev Türü Katsayısı × Gün Sayısı
+// ══════════════════════════════════════════════════════════════════
+function getIlK(il){return parseFloat(IL_DATA[il]?.ilk)||0;}
+function getZK(il){return parseFloat(IL_DATA[il]?.zorluk)||0;} // zorluk artık kullanılmıyor ama vg sayfasında gösterim için kalıyor
+
+function calcRowCarpim(id,year,rowIdx){
+  const r=data[id].rows[year][rowIdx];
+  const ilK  = getIlK(r.il);
+  const gvK  = GV_K[r.gorev]||0;
+  const gun  = parseFloat(r.gun)||0;
+  return ilK * gvK * gun;
+}
+function calcYearTotal(id,year){
+  return data[id].rows[year].reduce((_s,_,r)=>_s+calcRowCarpim(id,year,r),0);
+}
+function getTotal(id){
+  const onceki=parseFloat(data[id].onceki)||0;
+  return onceki+YEARS.reduce((s,y)=>s+calcYearTotal(id,y),0);
+}
+function getTotalStr(id){return getTotal(id).toFixed(3);}
+
+// Hangi yıllar dolu?
+function getFilledYears(){
+  return YEARS.filter(y=>
+    engineers.some(e=>data[e.id].rows[y].some(r=>r.il||r.gorev||r.gun))
+  );
+}
+function hasOnceki(){
+  return engineers.some(e=>data[e.id].onceki&&data[e.id].onceki!=='0');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SIDEBAR
+// ══════════════════════════════════════════════════════════════════
+function renderSidebar(){
+  const list=document.getElementById('eng-list');
+  document.getElementById('eng-count').textContent=engineers.length+' kişi';
+  if(!engineers.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:11px">Henüz mühendis eklenmedi</div>';
+    return;
+  }
+  list.innerHTML=engineers.map(e=>`
+    <div class="eng-item ${e.id===selectedId?'active':''}" onclick="selectEngineer(${e.id})">
+      <div class="eng-av" style="background:${e.color}22;color:${e.color}">${e.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div class="eng-nm">${e.name}</div>
+        <div class="eng-tt">${e.title}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+        <div class="eng-sc">${getTotalStr(e.id)}</div>
+        <button onclick="deleteEngineer(${e.id},event)" style="background:none;border:none;color:var(--accent3);cursor:pointer;font-size:10px;padding:0">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  SORT / FILTER
+// ══════════════════════════════════════════════════════════════════
+function getSortedEngineers(){
+  const sort=document.getElementById('sort-by').value;
+  const fn=(document.getElementById('filter-name').value||'').toLowerCase();
+  const ft=document.getElementById('filter-title').value;
+  let list=[...engineers];
+  if(fn) list=list.filter(e=>e.name.toLowerCase().includes(fn));
+  if(ft) list=list.filter(e=>e.title===ft);
+  if(sort==='score-desc') list.sort((a,b)=>getTotal(b.id)-getTotal(a.id));
+  else if(sort==='score-asc') list.sort((a,b)=>getTotal(a.id)-getTotal(b.id));
+  else if(sort==='name-asc') list.sort((a,b)=>a.name.localeCompare(b.name,'tr'));
+  else if(sort==='name-desc') list.sort((a,b)=>b.name.localeCompare(a.name,'tr'));
+  document.getElementById('sort-info').textContent=list.length+' / '+engineers.length+' kişi';
+  return list;
+}
+function applySort(){if(currentPage==='all') renderAllView();}
+
+// ══════════════════════════════════════════════════════════════════
+//  TABLO BAŞLIĞI (dinamik yıllar)
+// ══════════════════════════════════════════════════════════════════
+function buildHead(years,showOnceki){
+  const yThs=years.map(y=>{
+    const cls=y==='2025'?'y-now':parseInt(y)>2025?'y-fut':'';
+    return `<th colspan="5" class="${cls}">${y}</th>`;
+  }).join('');
+  const sSubs=years.map(()=>`
+    <th class="sub-il col-sub">İL</th>
+    <th class="sub-il col-sub" style="background:rgba(26,115,64,.14)!important;color:#1a5c35;font-size:7.5px;">İL KATS.</th>
+    <th class="sub-g col-sub">GÖREV</th>
+    <th class="sub-z col-sub">GÜN</th>
+    <th class="sub-cp col-sub">×</th>
+  `).join('');
+  const oncekiTh=showOnceki?`<th colspan="1" class="y-prev-hd col-prev" rowspan="1">ÖNCEKİ DÖNEM</th>`:'';
+  const oncekiSub=showOnceki?`<th class="sub-prev col-prev">PUAN</th>`:'';
+  return `
+    <thead>
+      <tr class="row-year">
+        <th class="col-row" rowspan="2">—</th>
+        ${oncekiTh}
+        ${yThs}
+        <th rowspan="2" class="sticky-right-head col-sub" style="min-width:90px">TOPLAM</th>
+      </tr>
+      <tr class="row-sub">
+        ${oncekiSub}
+        ${sSubs}
+      </tr>
+    </thead>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  KİŞİ BLOĞU (her kişi ayrı tablo — ROWS_PER_YEAR satır/yıl)
+// ══════════════════════════════════════════════════════════════════
+function buildPersonBlock(eng, rank, years, showOnceki){
+  const bc=rank===1?'rank-1':rank===2?'rank-2':rank===3?'rank-3':'';
+  const id=eng.id;
+
+  // Her yıl için ROWS_PER_YEAR satır
+  let bodyHtml='';
+
+  for(let r=0;r<ROWS_PER_YEAR;r++){
+    // İlk satırda onceki dönem (rowspan=3), son satırda yıl toplamı
+    const isFirst=r===0;
+    const isLast=r===ROWS_PER_YEAR-1;
+
+    let rowHtml=`<tr class="data-row">`;
+
+    // Row label
+    rowHtml+=`<td class="row-lbl">${r+1}</td>`;
+
+    // Önceki dönem — sadece ilk satırda, rowspan=3
+    if(showOnceki){
+      if(isFirst){
+        rowHtml+=`<td style="background:var(--col0)" rowspan="${ROWS_PER_YEAR}">
+          <input class="cell-input prev-inp" type="number" step="0.001" min="0"
+            value="${data[id].onceki||''}" placeholder="—"
+            oninput="updOnceki(${id},this.value)"/>
+        </td>`;
+      }
+    }
+
+    // Yıl hücreleri
+    for(const y of years){
+      const row=data[id].rows[y][r];
+      const cp=calcRowCarpim(id,y,r);
+      const safeId=`${id}_${y}_${r}`;
+
+      const ilOpts=['', ...ILLER].map(il=>
+        `<option value="${il}" ${row.il===il?'selected':''}>${il||'-- İl --'}</option>`
+      ).join('');
+      const gvOpts=`
+        <option value="" ${row.gorev===''?'selected':''}>--</option>
+        <option value="hasar" ${row.gorev==='hasar'?'selected':''}>Hasar (1.20)</option>
+        <option value="buro" ${row.gorev==='buro'?'selected':''}>Büro (1.00)</option>`;
+
+      const ilKVal = getIlK(row.il);
+
+      rowHtml+=`
+        <td style="background:var(--col1)">
+          <select class="il-sel" onchange="updRow(${id},'${y}',${r},'il',this.value)">${ilOpts}</select>
+        </td>
+        <td style="background:rgba(26,115,64,.1);text-align:center;" id="ilk-${safeId}">
+          ${row.il && ilKVal>0
+            ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#1a5c35;font-weight:700;">${ilKVal.toFixed(3)}</div>`
+            : `<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#aaa;">—</div>`}
+        </td>
+        <td style="background:var(--col3)">
+          <select class="gv-sel" onchange="updRow(${id},'${y}',${r},'gorev',this.value)">${gvOpts}</select>
+        </td>
+        <td style="background:var(--col2)">
+          <input class="cell-input" type="number" step="1" min="0" max="366"
+            value="${row.gun||''}" placeholder="Gün"
+            oninput="updRow(${id},'${y}',${r},'gun',this.value)"
+            style="color:#1a7340;font-weight:600;"/>
+        </td>
+        <td class="cp-val" id="cp-${safeId}">${cp>0?cp.toFixed(3):'—'}</td>`;
+    }
+
+    // Son satırda yıl toplamları (rowspan ile değil, ayrı hücre — last row yıl toplamları)
+    if(isLast){
+      rowHtml+=`<td class="grand-total-val sticky-right-data" id="tot-${id}" rowspan="1"
+        style="vertical-align:middle;">${getTotalStr(id)}</td>`;
+    }
+
+    rowHtml+=`</tr>`;
+    bodyHtml+=rowHtml;
+  }
+
+  // Yıl ara toplamları satırı
+  let subRow=`<tr class="sub-row">`;
+  subRow+=`<td style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);padding:0 4px;text-align:center">∑</td>`;
+  if(showOnceki) subRow+=`<td style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--accent4);padding:0 6px" id="onceki-disp-${id}">
+    ${parseFloat(data[id].onceki)||0 > 0 ? parseFloat(data[id].onceki).toFixed(3) : '—'}
+  </td>`;
+  for(const y of years){
+    const yt=calcYearTotal(id,y);
+    subRow+=`<td colspan="4" class="yrtot-val" id="yrtot-${id}-${y}">${yt>0?yt.toFixed(3):'—'}</td>`;
+  }
+  subRow+=`<td></td></tr>`;
+  bodyHtml+=subRow;
+
+  const rankLabel=rank<=3?['🥇','🥈','🥉'][rank-1]:rank+'.';
+  return `
+    <div class="person-block" id="block-${id}">
+      <div class="person-block-header">
+        <span class="pb-rank">${rankLabel}</span>
+        <span class="pb-name" style="color:${eng.color}">${eng.name}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#2ecc71;margin-left:2px;" id="pb-tot-${id}">${getTotalStr(id)}</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);margin-left:2px;">puan</span>
+        <span class="pb-title" style="margin-left:10px;">${eng.title}</span>
+      </div>
+      <table>${buildHead(years,showOnceki)}<tbody>${bodyHtml}</tbody></table>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TÜMÜ GÖRÜNÜMÜ
+// ══════════════════════════════════════════════════════════════════
+function renderAllView(){
+  const empty=document.getElementById('empty-all');
+  const container=document.getElementById('container-all');
+  if(!engineers.length){empty.style.display='flex';container.style.display='none';return;}
+  empty.style.display='none';container.style.display='block';
+  const list=getSortedEngineers();
+  // Sadece veri girilmiş yıllar görünsün
+  const visibleYears=getVisibleYears();
+  const showO=true;
+  container.innerHTML=list.map((e,i)=>buildPersonBlock(e,i+1,visibleYears,showO)).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TEKİL GÖRÜNÜM
+// ══════════════════════════════════════════════════════════════════
+function renderSingleView(){
+  const empty=document.getElementById('empty-single');
+  const container=document.getElementById('container-single');
+  if(!selectedId||!engineers.find(e=>e.id===selectedId)){
+    empty.style.display='flex';container.style.display='none';return;
+  }
+  empty.style.display='none';container.style.display='block';
+  const eng=engineers.find(e=>e.id===selectedId);
+  container.innerHTML=buildPersonBlock(eng,1,YEARS,true);
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  GÜNCELLEME
+// ══════════════════════════════════════════════════════════════════
+function updRow(id,year,rowIdx,field,value){
+  if(!requireEdit()) return;
+  data[id].rows[year][rowIdx][field]=value;
+  refreshCell(id,year,rowIdx);
+  refreshYearTotal(id,year);
+  refreshPersonTotal(id);
+  // Kaydet uyarısı (sürekli değil, sadece field değişiminde)
+  showToast('⚠ Kaydetmeyi unutmayın!', 'warn', 2500);
+}
+
+function updOnceki(id,value){
+  if(!requireEdit()) return;
+  data[id].onceki=value;
+  const el=document.getElementById(`onceki-disp-${id}`);
+  const v=parseFloat(value)||0;
+  if(el) el.textContent=v>0?v.toFixed(3):'—';
+  refreshPersonTotal(id);
+}
+
+function refreshCell(id,year,rowIdx){
+  const safeId=`${id}_${year}_${rowIdx}`;
+  const row=data[id].rows[year][rowIdx];
+
+  // İl Katsayısı gösterimi güncelle
+  const ilkEl=document.getElementById(`ilk-${safeId}`);
+  if(ilkEl){
+    const ilKVal=getIlK(row.il);
+    ilkEl.innerHTML = row.il && ilKVal>0
+      ? `<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#1a5c35;font-weight:700;">${ilKVal.toFixed(3)}</div>`
+      : `<div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#aaa;">—</div>`;
+  }
+
+  const cp=calcRowCarpim(id,year,rowIdx);
+  const cpEl=document.getElementById(`cp-${safeId}`);
+  if(cpEl) cpEl.textContent=cp>0?cp.toFixed(3):'—';
+}
+
+function refreshYearTotal(id,year){
+  const yt=calcYearTotal(id,year);
+  const ytEl=document.getElementById(`yrtot-${id}-${year}`);
+  if(ytEl) ytEl.textContent=yt>0?yt.toFixed(3):'—';
+}
+
+function refreshPersonTotal(id){
+  const total=getTotalStr(id);
+  const totEl=document.getElementById('tot-'+id);
+  if(totEl) totEl.textContent=total;
+  const pbEl=document.getElementById('pb-tot-'+id);
+  if(pbEl) pbEl.textContent=total;
+  markUnsaved();
+  renderSidebar();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  GRUPLANDIRMA ALGORİTMASI
+//  - İnşaat Mühendisleri ve Mimar/Teknikerler ayrı listelere ayrılır
+//  - Her iki liste kendi içinde puanına göre küçükten büyüğe sıralanır
+//  - Sıralı listelerden sırayla birer eleman alınarak ikili grup oluşturulur
+//  - Eşleşemeyen tek kalan varsa solo grup olarak gösterilir
+// ══════════════════════════════════════════════════════════════════
+
+function buildGroups(){
+  // Tüm mühendisleri puana göre küçükten büyüğe sırala
+  const all = [...engineers].sort((a,b) => getTotal(a.id) - getTotal(b.id));
+
+  // Gruplara ayır
+  const muhendisler = all.filter(e => e.title === 'İnşaat Mühendisi');
+  const diger       = all.filter(e => e.title === 'Mimar' || e.title === 'İnşaat Teknikeri');
+
+  const groups = [];
+  const maxLen = Math.max(muhendisler.length, diger.length);
+
+  for(let i = 0; i < maxLen; i++){
+    const m = muhendisler[i] || null;
+    const d = diger[i]       || null;
+    groups.push({ no: i+1, a: m, b: d });
+  }
+
+  return groups;
+}
+
+function renderGrpPage(){
+  const empty     = document.getElementById('empty-grp');
+  const container = document.getElementById('container-grp');
+
+  if(!engineers.length){
+    empty.style.display='flex'; container.style.display='none'; return;
+  }
+
+  const groups = buildGroups();
+  if(!groups.length){
+    empty.style.display='flex'; container.style.display='none'; return;
+  }
+
+  empty.style.display='none'; container.style.display='block';
+
+  const scoreOf = (e) => e ? getTotalStr(e.id) : '—';
+
+  const personCard = (e) => {
+    if(!e) return `
+      <div style="flex:1;border:2px dashed #c8dcc0;padding:14px 16px;border-radius:6px;
+        opacity:0.4;display:flex;align-items:center;justify-content:center;
+        font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">
+        — Eşleşme yok —
+      </div>`;
+    return `
+      <div style="flex:1;border:2px solid ${e.color}44;background:${e.color}08;padding:12px 16px;border-radius:6px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;
+          letter-spacing:1px;color:${e.color};">${e.name}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;">${e.title}</div>
+        <div style="margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:var(--accent);">${scoreOf(e)}
+          <span style="font-size:9px;color:var(--muted);font-weight:400;margin-left:3px;">puan</span>
+        </div>
+      </div>`;
+  };
+
+  container.innerHTML = groups.map(g => `
+    <div style="display:flex;gap:10px;margin-bottom:10px;align-items:stretch;">
+      <div style="width:44px;flex-shrink:0;background:linear-gradient(135deg,#1a5c35,#1a7340);border-radius:6px;
+        display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;line-height:1;">${g.no}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:rgba(255,255,255,.6);text-transform:uppercase;">GRUP</div>
+      </div>
+      ${personCard(g.a)}
+      <div style="display:flex;align-items:center;justify-content:center;
+        font-size:20px;color:#1a7340;flex-shrink:0;">⇄</div>
+      ${personCard(g.b)}
+      <div style="width:84px;flex-shrink:0;background:#f0fff4;border:2px solid rgba(26,115,64,.2);border-radius:6px;
+        display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Grup ∑</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:#1a7340;">
+          ${((parseFloat(g.a ? getTotal(g.a.id) : 0) + parseFloat(g.b ? getTotal(g.b.id) : 0))).toFixed(3)}
+        </div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// ── Gruplandırma Excel ──────────────────────────────────────
+function exportGrpExcel(){
+  if(!engineers.length){alert('Veri yok!');return;}
+  const wb   = XLSX.utils.book_new();
+  const groups = buildGroups();
+
+  const rows = [
+    ['HASAR TESPİT PUANTAJ — GRUPLANDIRMA LİSTESİ'],
+    ['T.C. Çevre, Şehircilik ve İklim Değişikliği Bakanlığı'],
+    ['Afet Koordinasyon ve İskan Şube Müdürlüğü — Trabzon'],
+    ['Çıktı Tarihi: ' + new Date().toLocaleDateString('tr-TR')],
+    [],
+    ['GRUP NO', 'KİŞİ A — AD SOYAD', 'UNVAN', 'PUAN', '', 'KİŞİ B — AD SOYAD', 'UNVAN', 'PUAN', 'GRUP TOPLAMI']
+  ];
+
+  groups.forEach(g => {
+    const aScore = g.a ? parseFloat(getTotalStr(g.a.id)) : 0;
+    const bScore = g.b ? parseFloat(getTotalStr(g.b.id)) : 0;
+    rows.push([
+      g.no,
+      g.a ? g.a.name  : '—', g.a ? g.a.title : '—', g.a ? aScore : '—',
+      '⇄',
+      g.b ? g.b.name  : '—', g.b ? g.b.title : '—', g.b ? bScore : '—',
+      aScore + bScore
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:8},{wch:26},{wch:20},{wch:12},{wch:4},{wch:26},{wch:20},{wch:12},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Gruplandırma');
+  XLSX.writeFile(wb, 'hasar-tespit-gruplandirma.xlsx');
+}
+
+// ── Gruplandırma PDF ────────────────────────────────────────
+function exportGrpPDF(){
+  if(!engineers.length){alert('Veri yok!');return;}
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
+  const groups = buildGroups();
+
+  // Başlık — Türkçe karakter yok
+  doc.setFontSize(10); doc.setTextColor(37,99,168);
+  doc.text('Trabzon Afet Koordinasyon ve Iskan Sube Mudurlugu', 148, 12, {align:'center'});
+  doc.setFontSize(14); doc.setTextColor(20,20,20);
+  doc.text('HASAR TESPIT PUANTAJ - GRUPLANDIRMA LISTESI', 148, 20, {align:'center'});
+  doc.setFontSize(9); doc.setTextColor(100,100,100);
+  doc.text('Tarih: '+new Date().toLocaleDateString('tr-TR'), 148, 27, {align:'center'});
+  doc.setDrawColor(37,99,168); doc.setLineWidth(0.8); doc.line(15,30,282,30);
+
+  const body = groups.map(g => {
+    const aScore = g.a ? getTotalStr(g.a.id) : '-';
+    const bScore = g.b ? getTotalStr(g.b.id) : '-';
+    const sum    = ((parseFloat(g.a ? getTotal(g.a.id):0)+parseFloat(g.b ? getTotal(g.b.id):0))).toFixed(3);
+    return [
+      g.no,
+      g.a ? tr2ascii(g.a.name) : '-', g.a ? tr2ascii(g.a.title) : '-', aScore,
+      '<->',
+      g.b ? tr2ascii(g.b.name) : '-', g.b ? tr2ascii(g.b.title) : '-', bScore,
+      sum
+    ];
+  });
+
+  doc.autoTable({
+    startY: 34,
+    head: [['#', 'Ad Soyad (A)', 'Unvan', 'Puan', '', 'Ad Soyad (B)', 'Unvan', 'Puan', 'Grup Toplam']],
+    body,
+    theme: 'grid',
+    headStyles: { fillColor:[37,99,168], textColor:[255,255,255], fontStyle:'bold', fontSize:9 },
+    bodyStyles: { fontSize:9, textColor:[20,20,20] },
+    alternateRowStyles: { fillColor:[240,246,255] },
+    columnStyles: {
+      0:{halign:'center',cellWidth:10},
+      3:{halign:'center',textColor:[37,99,168],fontStyle:'bold'},
+      4:{halign:'center',cellWidth:8},
+      7:{halign:'center',textColor:[37,99,168],fontStyle:'bold'},
+      8:{halign:'center',fontStyle:'bold',textColor:[37,99,168]}
+    },
+    margin:{left:15,right:15}
+  });
+
+  // Alt imza
+  const py = doc.internal.pageSize.height - 8;
+  doc.setFontSize(8); doc.setTextColor(120,120,120);
+  doc.text('Oguzhan Onat - Afet Koordinasyon ve Iskan Sube Muduru', 15, py);
+  doc.text('Sayfa 1 / 1', 282, py, {align:'right'});
+
+  doc.save('hasar-tespit-gruplandirma.pdf');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  EXPORT — SADECE DOLU SATIRLAR / YILLAR
+// ══════════════════════════════════════════════════════════════════
+
+// Bir satır dolu mu?
+function rowFilled(r){ return r.il||r.gorev||r.gun; }
+
+// Bir yılda en az 1 dolu satır var mı (herhangi kişide)?
+function yearHasData(y){
+  return engineers.some(e=>data[e.id].rows[y].some(rowFilled));
+}
+
+// ── EXCEL ──────────────────────────────────────────────────
+function exportExcel(){
+  if(!engineers.length){alert('Veri yok!');return;}
+  const wb=XLSX.utils.book_new();
+  const sorted=[...engineers].sort((a,b)=>getTotal(b.id)-getTotal(a.id));
+
+  // Sadece: Sıra, Ad Soyad, Unvan, Genel Toplam
+  const rows=[['HASAR TESPİT PUANTAJ'],['Çıktı Tarihi: '+new Date().toLocaleDateString('tr-TR')],[]];
+  rows.push(['SIRA','AD SOYAD','UNVAN','GENEL TOPLAM']);
+  sorted.forEach((e,i)=>{
+    rows.push([i+1, e.name, e.title, parseFloat(getTotalStr(e.id))]);
+  });
+
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // Sütun genişlikleri
+  ws['!cols']=[{wch:6},{wch:28},{wch:22},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws,'Puantaj');
+
+  XLSX.writeFile(wb,'hasar-tespit-puantaj.xlsx');
+}
+
+// ── Ana Sayfa PDF: Ad, Unvan, İller, Yıllar(Gün), Puan ────
+function exportMainPDF(){
+  if(!engineers.length){alert('Veri yok!');return;}
+  const {jsPDF}=window.jspdf;
+  const filledYears=YEARS.filter(y=>
+    engineers.some(e=>data[e.id].rows&&data[e.id].rows[y]&&data[e.id].rows[y].some(r=>r.il||r.gun))
+  );
+  if(!filledYears.length){alert('Henüz veri girilmemiş!');return;}
+
+  const doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a3'});
+  const sorted=[...engineers].sort((a,b)=>getTotal(a.id)-getTotal(b.id));
+  const PAGE_W=420; const MARGIN=12; const usable=PAGE_W-2*MARGIN;
+
+  doc.setFontSize(11);doc.setTextColor(26,92,53);
+  doc.text('Trabzon Afet Koordinasyon ve Iskan Sube Mudurlugu',PAGE_W/2,11,{align:'center'});
+  doc.setFontSize(16);doc.setTextColor(20,20,20);
+  doc.text('HASAR TESPIT PUANTAJ',PAGE_W/2,19,{align:'center'});
+  doc.setFontSize(9);doc.setTextColor(100,100,100);
+  doc.text('Puana Gore Kucukten Buyuge  —  '+new Date().toLocaleDateString('tr-TR'),PAGE_W/2,25,{align:'center'});
+  doc.setDrawColor(26,115,64);doc.setLineWidth(0.8);doc.line(MARGIN,28,PAGE_W-MARGIN,28);
+
+  // Sütunlar: SIRA | AD SOYAD | UNVAN | GİDİLEN İLLER | [2025 GÜN] | [2026 GÜN]... | PUAN
+  const head=['SIRA','AD SOYAD','UNVAN','GIDILEN ILLER'];
+  filledYears.forEach(y=>head.push(y+'\nGUN'));
+  head.push('PUAN');
+
+  const body=sorted.map((e,i)=>{
+    const tumIller=new Set();
+    YEARS.forEach(y=>{
+      if(data[e.id].rows&&data[e.id].rows[y])
+        data[e.id].rows[y].forEach(r=>{if(r.il) tumIller.add(tr2ascii(r.il));});
+    });
+    const row=[i+1, tr2ascii(e.name), tr2ascii(e.title),
+      tumIller.size>0?[...tumIller].join(', '):'-'];
+    filledYears.forEach(y=>{
+      let g=0;
+      if(data[e.id].rows&&data[e.id].rows[y])
+        data[e.id].rows[y].forEach(r=>{g+=parseFloat(r.gun)||0;});
+      row.push(g>0?g:'-');
+    });
+    row.push(getTotalStr(e.id));
+    return row;
+  });
+
+  const siraw=12,adw=60,unvanw=46;
+  const puanw=22,yilw=20;
+  const illerw=Math.max(55, usable-siraw-adw-unvanw-puanw-(filledYears.length*yilw)-4);
+  const colStyles={
+    0:{halign:'center',cellWidth:siraw},
+    1:{halign:'left',cellWidth:adw},
+    2:{halign:'left',cellWidth:unvanw},
+    3:{halign:'left',cellWidth:illerw,fontSize:7.5,textColor:[26,92,53]},
+  };
+  let ci=4;
+  filledYears.forEach(()=>{
+    colStyles[ci]={halign:'center',cellWidth:yilw,fontStyle:'bold',textColor:[41,94,185],fontSize:9};
+    ci++;
+  });
+  colStyles[ci]={halign:'center',cellWidth:puanw,fontStyle:'bold',textColor:[26,92,53],fontSize:9};
+
+  doc.autoTable({
+    startY:31,head:[head],body,theme:'grid',
+    headStyles:{fillColor:[26,92,53],textColor:[255,255,255],fontStyle:'bold',fontSize:9,halign:'center',valign:'middle',minCellHeight:14},
+    bodyStyles:{fontSize:8.5,textColor:[20,20,20],valign:'middle'},
+    alternateRowStyles:{fillColor:[242,255,245]},
+    columnStyles:colStyles,
+    margin:{left:MARGIN,right:MARGIN},
+    tableWidth:usable
+  });
+
+  const pc=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pc;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);doc.setTextColor(160,160,160);
+    doc.text('Oguzhan Onat - Afet Koordinasyon ve Iskan Sube Muduru',MARGIN,doc.internal.pageSize.height-8);
+    doc.text('Sayfa '+i+' / '+pc,PAGE_W-MARGIN,doc.internal.pageSize.height-8,{align:'right'});
+  }
+  doc.save('hasar-tespit-puantaj-sirali.pdf');
+}
+
+
+// Türkçe karakterleri PDF-güvenli ASCII'ye çevir
+function tr2ascii(s){
+  return String(s)
+    .replace(/İ/g,'I').replace(/ı/g,'i')
+    .replace(/Ş/g,'S').replace(/ş/g,'s')
+    .replace(/Ğ/g,'G').replace(/ğ/g,'g')
+    .replace(/Ü/g,'U').replace(/ü/g,'u')
+    .replace(/Ö/g,'O').replace(/ö/g,'o')
+    .replace(/Ç/g,'C').replace(/ç/g,'c')
+    .replace(/â/g,'a').replace(/Â/g,'A')
+    .replace(/—/g,'-').replace(/⇄/g,'<->');
+}
+
+function exportPDF(){
+  if(!engineers.length){alert('Veri yok!');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const sorted=[...engineers].sort((a,b)=>getTotal(b.id)-getTotal(a.id));
+
+  // BAŞLIK
+  doc.setFontSize(11);doc.setTextColor(37,99,168);
+  doc.text('Trabzon Afet Koordinasyon ve Iskan Sube Mudurlugu',105,13,{align:'center'});
+  doc.setFontSize(18);doc.setTextColor(20,20,20);
+  doc.text('HASAR TESPIT PUANTAJ',105,22,{align:'center'});
+  doc.setFontSize(9);doc.setTextColor(120,120,120);
+  doc.text('Cikti Tarihi: '+new Date().toLocaleDateString('tr-TR'),105,29,{align:'center'});
+  doc.setDrawColor(37,99,168);doc.setLineWidth(0.8);doc.line(15,32,195,32);
+
+  // TABLO — Sıra, Ad Soyad, Unvan (Genel Toplam yok)
+  doc.autoTable({
+    startY:36,
+    head:[['SIRA','AD SOYAD','UNVAN']],
+    body:sorted.map((e,i)=>[i+1, tr2ascii(e.name), tr2ascii(e.title)]),
+    theme:'grid',
+    headStyles:{fillColor:[37,99,168],textColor:[255,255,255],fontStyle:'bold',fontSize:10,halign:'center'},
+    bodyStyles:{fontSize:9,textColor:[20,20,20]},
+    alternateRowStyles:{fillColor:[240,246,255]},
+    columnStyles:{
+      0:{halign:'center',cellWidth:16},
+      1:{halign:'left',cellWidth:90},
+      2:{halign:'left',cellWidth:75}
+    },
+    margin:{left:15,right:15}
+  });
+
+  // Alt not
+  const pageCount=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pageCount;i++){
+    doc.setPage(i);
+    doc.setFontSize(8);doc.setTextColor(160,160,160);
+    doc.text('Oguzhan Onat - Afet Koordinasyon ve Iskan Sube Muduru',15,doc.internal.pageSize.height-8);
+    doc.text('Sayfa '+i+' / '+pageCount,195,doc.internal.pageSize.height-8,{align:'right'});
+  }
+  doc.save('hasar-tespit-puantaj.pdf');
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  KALICI DEPOLAMA — IndexedDB + localStorage çift güvence
+//  Dosya bilgisayara indirilip açıldığında veriler KALICI olarak
+//  tarayıcıda saklanır. Program kapatılsa bile bir dahaki açılışta
+//  tüm veriler geri yüklenir.
+// ══════════════════════════════════════════════════════════════════
+
+const DB_NAME    = 'HasarTespitDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'puantaj';
+const RECORD_KEY = 'main';
+const LS_KEY     = 'hasar_tespit_puantaj_v2'; // localStorage yedek
+
+let _db = null;
+let _autoSaveTimer = null;
+
+// ── IndexedDB aç ───────────────────────────────────────────
+function openDB(){
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(STORE_NAME);
+    };
+    req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+// ── IndexedDB'ye yaz ───────────────────────────────────────
+function idbSave(payload){
+  return new Promise((resolve, reject) => {
+    if(!_db){ reject('DB yok'); return; }
+    const tx = _db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(payload, RECORD_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror    = e => reject(e.target.error);
+  });
+}
+
+// ── IndexedDB'den oku ──────────────────────────────────────
+function idbLoad(){
+  return new Promise((resolve, reject) => {
+    if(!_db){ reject('DB yok'); return; }
+    const tx  = _db.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).get(RECORD_KEY);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+// ── Kaydet (üçlü güvence: IndexedDB + LS_KEY + LS_KEY_BACKUP) ────
+async function saveToStorage(){
+  const payload = { engineers, data, IL_DATA, YEARS, savedAt: new Date().toISOString() };
+  let ok = false;
+
+  // 1) IndexedDB
+  try { await idbSave(payload); ok = true; }
+  catch(e){ console.warn('IDB save failed:', e); }
+
+  // 2) localStorage ana key
+  try { localStorage.setItem(LS_KEY, JSON.stringify(payload)); ok = true; }
+  catch(e){ console.warn('LS save failed:', e); }
+
+  // 3) localStorage yedek key (farklı isim — ikisi birden silinmez)
+  try { localStorage.setItem(LS_KEY+'_bak', JSON.stringify(payload)); }
+  catch(e){}
+
+  if(ok){
+    markSaved();
+    showToast('✓ Kaydedildi — ' + new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}));
+    showSaveStatus('✓ Kaydedildi', '#0e8a6b');
+  } else {
+    showToast('✗ Kayıt başarısız! Tarayıcı depolama dolu olabilir.', 'warn', 5000);
+  }
+}
+
+// ── Yükle ──────────────────────────────────────────────────
+async function loadFromStorage(){
+  let payload = null;
+
+  // 1) IndexedDB'den dene
+  try {
+    payload = await idbLoad();
+    if(payload) console.log('Veri IDB\'den yüklendi');
+  } catch(e){ console.warn('IDB load failed:', e); }
+
+  // 2) Yoksa localStorage'dan dene (yeni key)
+  if(!payload){
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if(raw){ payload = JSON.parse(raw); console.log('Veri LS\'den yüklendi'); }
+    } catch(e){}
+  }
+
+  // 3) Eski key'lerle de dene (geriye dönük uyumluluk)
+  if(!payload){
+    const eskiKeyler = [LS_KEY+'_bak', 'hasar_tespit_puantaj_v1','htp_data','hasar_puantaj'];
+    for(const k of eskiKeyler){
+      try {
+        const raw = localStorage.getItem(k);
+        if(raw){ payload = JSON.parse(raw); console.log('Veri eski key\'den yüklendi:', k); break; }
+      } catch(e){}
+    }
+  }
+
+  if(!payload) return false;
+
+  try {
+    if(payload.engineers) engineers = payload.engineers;
+    if(payload.data)      data      = payload.data;
+    if(payload.IL_DATA)   IL_DATA   = payload.IL_DATA;
+    if(payload.YEARS && Array.isArray(payload.YEARS) && payload.YEARS.length>0) YEARS = payload.YEARS;
+
+    // Geriye dönük uyumluluk: eski veriye gun alanı yoksa ekle
+    engineers.forEach(e => {
+      if(data[e.id] && data[e.id].rows){
+        YEARS.forEach(y => {
+          if(data[e.id].rows[y]){
+            data[e.id].rows[y].forEach(r => { if(r.gun===undefined) r.gun=''; });
+          }
+        });
+      }
+    });
+
+    selectedId = engineers.length ? engineers[0].id : null;
+    const d = new Date(payload.savedAt);
+    showSaveStatus(
+      '✓ ' + engineers.length + ' kişi yüklendi · Son kayıt: '
+      + d.toLocaleDateString('tr-TR') + ' '
+      + d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}),
+      '#4ae8b0'
+    );
+    return true;
+  } catch(e){ return false; }
+}
+
+// ── Otomatik kayıt (her değişiklikten 1 sn sonra) ──────────
+function scheduleAutoSave(){
+  clearTimeout(_autoSaveTimer);
+  _autoSaveTimer = setTimeout(() => saveToStorage(), 1000);
+}
+
+// ── Durum göstergesi ───────────────────────────────────────
+function showSaveStatus(msg, color){
+  const el = document.getElementById('save-status');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = color;
+}
+
+// ── Kaydet butonu rengi ─────────────────────────────────────
+// ── Toast bildirimi ────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg, type='success', duration=3000){
+  const el = document.getElementById('toast');
+  if(!el) return;
+  el.textContent = msg;
+  el.className = type==='warn' ? 'warn' : type==='info' ? 'info' : '';
+  void el.offsetWidth; // reflow
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, duration);
+}
+
+function markUnsaved(){
+  _hasUnsaved = true;
+  const btn = document.getElementById('save-btn');
+  if(btn){ btn.style.background='#922b21'; btn.style.animation='none'; setTimeout(()=>{btn.style.animation='pulse-save 1s infinite';},50); }
+  const bar = document.getElementById('unsaved-bar');
+  if(bar) bar.style.display='block';
+  const dw = document.getElementById('drawer-unsaved-warn');
+  if(dw) dw.style.display='block';
+  scheduleAutoSave();
+}
+function markSaved(){
+  _hasUnsaved = false;
+  const btn = document.getElementById('save-btn');
+  if(btn){ btn.style.background='#27ae60'; btn.style.animation='none'; setTimeout(()=>{btn.style.animation='pulse-save 2s infinite';},2000); }
+  const bar = document.getElementById('unsaved-bar');
+  if(bar) bar.style.display='none';
+  const dw = document.getElementById('drawer-unsaved-warn');
+  if(dw) dw.style.display='none';
+}
+function var_accent2_val(){ return '#1a7340'; }
+
+// ── Sayfa kapanırken de kaydet ─────────────────────────────
+window.addEventListener('beforeunload', () => {
+  // Senkron localStorage kaydı (IDB async olduğu için)
+  try {
+    const payload = { engineers, data, IL_DATA, YEARS, savedAt: new Date().toISOString() };
+    localStorage.setItem(LS_KEY, JSON.stringify(payload));
+  } catch(e){}
+});
+
+// ── EXCEL'DEN İÇE AKTAR ────────────────────────────────────
+function importFromExcel(){
+  if(!requireEdit()) return;
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.xlsx,.xls';
+  input.onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb   = XLSX.read(ev.target.result, {type:'array'});
+        const ws   = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+        // Başlık satırını bul
+        let hdrIdx = -1;
+        for(let i=0;i<rows.length;i++){
+          const r = rows[i].map(c=>String(c).toUpperCase().trim());
+          if(r.some(h=>h.includes('AD')) && r.some(h=>h.includes('UNVAN'))){ hdrIdx=i; break; }
+        }
+        if(hdrIdx<0){ alert('Başlık satırı bulunamadı (AD SOYAD, UNVAN).'); return; }
+        const hdr    = rows[hdrIdx].map(c=>String(c).toUpperCase().trim());
+        const iName  = hdr.findIndex(h=>h.includes('AD'));
+        const iTitle = hdr.findIndex(h=>h.includes('UNVAN'));
+        const iScore = hdr.findIndex(h=>h.includes('TOPLAM'));
+        let added=0, updated=0;
+        for(let i=hdrIdx+1; i<rows.length; i++){
+          const row   = rows[i];
+          const name  = String(row[iName]||'').trim();
+          const title = String(row[iTitle]||'').trim();
+          const score = iScore>=0 ? parseFloat(row[iScore])||0 : 0;
+          if(!name||name==='—') continue;
+          const validTitles=['İnşaat Mühendisi','Mimar','İnşaat Teknikeri'];
+          const matchTitle = validTitles.find(t=>title.toLowerCase().includes(t.toLowerCase().slice(0,6)))||title;
+          const existing = engineers.find(eng=>eng.name.toLowerCase().trim()===name.toLowerCase());
+          if(existing){
+            existing.title = matchTitle||existing.title;
+            if(score>0 && !data[existing.id].onceki) data[existing.id].onceki=score.toString();
+            updated++;
+          } else {
+            const id=Date.now()+i;
+            engineers.push({id,name,title:matchTitle||'İnşaat Mühendisi',color:COLORS[engineers.length%COLORS.length]});
+            data[id]={onceki:score>0?score.toString():''};
+            data[id].rows={};
+            YEARS.forEach(y=>{data[id].rows[y]=Array.from({length:ROWS_PER_YEAR},()=>({il:'',gorev:'',gun:''}));});
+            added++;
+          }
+        }
+        renderSidebar(); renderAllView(); saveToStorage();
+        alert(`✓ Tamamlandı!\n${added} yeni kişi eklendi\n${updated} kişi güncellendi`);
+      } catch(err){ alert('Hata: '+err.message); }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+  input.click();
+}
+
+// ── JSON dışa/içe aktar ────────────────────────────────────
+function exportJSON(){
+  const blob=new Blob([JSON.stringify({engineers,data,IL_DATA},null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='hasar-tespit-puantaj-yedek.json'; a.click();
+}
+function importData(){
+  const input=document.createElement('input'); input.type='file'; input.accept='.json';
+  input.onchange=e=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const p=JSON.parse(ev.target.result);
+        engineers=p.engineers||[];
+        data=p.data||{};
+        if(p.IL_DATA) IL_DATA=p.IL_DATA;
+        selectedId=engineers.length?engineers[0].id:null;
+        renderSidebar();
+        if(currentPage==='vg') renderVgPage();
+        else if(currentPage==='all') renderAllView();
+        else renderSingleView();
+        saveToStorage(); // içe aktarınca hemen kaydet
+      }catch{ alert('Geçersiz dosya!'); }
+    };
+    reader.readAsText(e.target.files[0]);
+  };
+  input.click();
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  UYGULAMA BAŞLATMA — Giriş ekranı yok, direkt açılır
+// ══════════════════════════════════════════════════════════════════
+
+async function appStart(){
+  // Geri/İleri tuşuyla çıkış olmasın
+  history.pushState(null, '', window.location.href);
+  window.onpopstate = function(){
+    history.pushState(null, '', window.location.href);
+    showToast('Geri tuşu devre dışı','info',2000);
+  };
+
+  // IndexedDB aç (hata olursa localStorage ile devam et)
+  try { await openDB(); } catch(e){ console.warn('IDB açılamadı, localStorage kullanılacak'); }
+
+  // Veriyi yükle
+  const loaded = await loadFromStorage();
+  ensureYearsForAll();
+
+  // UI güncelle
+  renderSidebar();
+  renderVgPage();
+  renderAllView();
+  updateYearIndicator();
+
+  const siEl = document.getElementById('sort-info');
+  if(siEl) siEl.textContent = engineers.length + ' / ' + engineers.length + ' kişi';
+
+  if(loaded){
+    showToast('✓ ' + engineers.length + ' kişi yüklendi', 'success', 2500);
+  } else {
+    showToast('Yeni başlangıç — veriler otomatik kaydedilecek', 'info', 3000);
+  }
+}
+
+// ── BAŞLAT ──────────────────────────────────────────────────
+// Giriş ekranı kaldırıldı — direkt uygulama başlar
+(function init(){
+  // Kullanıcı rozeti gizle (giriş yok)
+  const ub = document.getElementById('user-badge');
+  if(ub) ub.style.display = 'none';
+  // Köşe logo göster
+  const cl = document.getElementById('corner-logo');
+  if(cl) cl.style.display = 'flex';
+  // Login ekranı varsa gizle
+  const ls = document.getElementById('login-screen');
+  if(ls) ls.style.display = 'none';
+  // Uygulama başlat
+  appStart();
+})();
+</script>
+</body>
+</html>
